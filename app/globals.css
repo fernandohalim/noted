@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-bg: #0a0a0a;
+  --color-bg-elevated: #141414;
+  --color-bg-hover: #1c1c1c;
+  --color-border: #262626;
+  --color-text: #e5e5e5;
+  --color-text-muted: #888;
+  --color-accent: #d97757;
+  --color-accent-hover: #c66544;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-feature-settings: "ss01", "cv01";
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333;
+}
+
+@keyframes progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.cm-editor {
+  height: 100%;
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+.cm-scroller {
+  font-family: var(--font-mono), ui-monospace, monospace !important;
+  line-height: 1.6;
+}

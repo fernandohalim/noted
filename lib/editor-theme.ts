@@ -1,0 +1,60 @@
+import { createTheme } from "@uiw/codemirror-themes";
+import { tags as t } from "@lezer/highlight";
+
+export const customTheme = createTheme({
+  theme: "dark",
+  settings: {
+    background: "transparent",
+    backgroundImage: "",
+    foreground: "#e5e5e5",
+    caret: "#d97757",
+    selection: "#2a2a2a",
+    selectionMatch: "#2a2a2a",
+    lineHighlight: "transparent",
+    gutterBackground: "transparent",
+    gutterForeground: "#666",
+    fontFamily: "var(--font-mono), ui-monospace, monospace",
+  },
+  styles: [
+    // markdown
+    { tag: t.heading1, color: "#d97757", fontWeight: "bold" },
+    { tag: t.heading2, color: "#d97757", fontWeight: "bold" },
+    { tag: [t.heading3, t.heading4, t.heading5, t.heading6], color: "#d97757" },
+    { tag: t.strong, fontWeight: "bold", color: "#fff" },
+    { tag: t.emphasis, fontStyle: "italic", color: "#fff" },
+    { tag: t.link, color: "#8ab4c0", textDecoration: "underline" },
+    { tag: t.url, color: "#8ab4c0" },
+    { tag: t.monospace, color: "#a8c08a" },
+    { tag: t.quote, color: "#888", fontStyle: "italic" },
+    { tag: t.list, color: "#d97757" },
+
+    // code block syntax (used inside ```lang fences)
+    { tag: t.comment, color: "#6a6a6a", fontStyle: "italic" },
+    { tag: t.lineComment, color: "#6a6a6a", fontStyle: "italic" },
+    { tag: t.blockComment, color: "#6a6a6a", fontStyle: "italic" },
+    { tag: t.string, color: "#a8c08a" },
+    { tag: t.character, color: "#a8c08a" },
+    { tag: t.regexp, color: "#a8c08a" },
+    { tag: t.keyword, color: "#c08aa8" },
+    { tag: t.controlKeyword, color: "#c08aa8" },
+    { tag: t.operatorKeyword, color: "#c08aa8" },
+    { tag: t.definitionKeyword, color: "#c08aa8" },
+    { tag: t.moduleKeyword, color: "#c08aa8" },
+    {
+      tag: [t.function(t.variableName), t.function(t.propertyName)],
+      color: "#8ab4c0",
+    },
+    { tag: t.variableName, color: "#e5e5e5" },
+    { tag: t.propertyName, color: "#e5e5e5" },
+    { tag: t.number, color: "#d4a76a" },
+    { tag: t.bool, color: "#d4a76a" },
+    { tag: t.null, color: "#d4a76a" },
+    { tag: t.typeName, color: "#c0a88a" },
+    { tag: t.className, color: "#c0a88a" },
+    { tag: t.tagName, color: "#c08a8a" },
+    { tag: t.attributeName, color: "#d4a76a" },
+    { tag: t.operator, color: "#aaa" },
+    { tag: t.punctuation, color: "#888" },
+    { tag: t.bracket, color: "#888" },
+  ],
+});
