@@ -4,8 +4,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'noted.',
     short_name: 'noted.',
-description: "minimalist note-taking, fast and reliable.",    
-start_url: '/',
+    description: "minimalist note-taking, fast and reliable.",    
+    start_url: '/',
     display: 'standalone',
     background_color: '#0a0a0a',
     theme_color: '#0a0a0a',
