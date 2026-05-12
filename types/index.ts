@@ -17,3 +17,8 @@ export interface Item extends ItemMeta {
 export interface TreeNode extends ItemMeta {
   children: TreeNode[];
 }
+
+export interface AboutModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}

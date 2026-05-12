@@ -9,12 +9,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "noted",
-  description: "notes for programmers, everywhere.",
+  metadataBase: new URL("https://noted-dev-app.vercel.app"),
+  title: "noted.",
+  description: "minimalist note-taking, fast and reliable.",
+  keywords: ["notes", "markdown", "noted", "pwa"],
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "noted",
+    title: "noted.",
     statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    title: "noted.",
+    description: "minimalist note-taking, fast and reliable.",
+    url: "https://noted-dev-app.vercel.app",
+    siteName: "noted.",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "noted app preview",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
   },
 };
 
