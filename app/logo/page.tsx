@@ -74,6 +74,8 @@ export default function LogoExporter() {
           height: renderSize,
           minWidth: renderSize,
           minHeight: renderSize,
+          // dynamically calculate outer border radius (0.225 mimics standard squircle)
+          borderRadius: renderSize * 0.225,
         }}
         className="bg-[var(--color-bg)] flex flex-col items-center justify-center font-mono border border-[var(--color-border)] relative overflow-hidden shrink-0"
       >
