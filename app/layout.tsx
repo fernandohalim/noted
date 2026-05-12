@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: "noted.",
   description: "minimalist note-taking, fast and reliable.",
   keywords: ["notes", "markdown", "noted", "pwa"],
+  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     title: "noted.",
