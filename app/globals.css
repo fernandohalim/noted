@@ -60,3 +60,77 @@ body {
   font-family: var(--font-mono), ui-monospace, monospace !important;
   line-height: 1.6;
 }
+
+.cm-panels {
+  background: var(--color-bg) !important;
+  color: var(--color-text) !important;
+}
+
+.cm-panel.cm-search {
+  background: var(--color-bg-elevated) !important;
+  border-top: 1px solid var(--color-border) !important;
+  padding: 8px 12px !important;
+  display: flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.cm-panel.cm-search input,
+.cm-panel.cm-search input[type="text"] {
+  background: var(--color-bg) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  font-family: var(--font-mono) !important;
+  outline: none !important;
+}
+
+.cm-panel.cm-search input:focus {
+  border-color: var(--color-accent) !important;
+}
+
+.cm-panel.cm-search button,
+.cm-panel.cm-search [name="close"] {
+  background: var(--color-bg) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text) !important;
+  padding: 3px 10px !important;
+  font-size: 12px !important;
+  font-family: var(--font-mono) !important;
+  cursor: pointer;
+}
+
+.cm-panel.cm-search button:hover {
+  background: var(--color-bg-hover) !important;
+  border-color: var(--color-text-muted) !important;
+}
+
+.cm-panel.cm-search label {
+  font-size: 12px !important;
+  color: var(--color-text-muted) !important;
+  display: flex !important;
+  align-items: center;
+  gap: 4px;
+}
+
+.cm-panel.cm-search br {
+  display: none;
+}
+
+.cm-searchMatch {
+  background: rgba(217, 119, 87, 0.25) !important;
+  outline: 1px solid var(--color-accent) !important;
+}
+
+.cm-searchMatch.cm-searchMatch-selected {
+  background: var(--color-accent) !important;
+  color: var(--color-bg) !important;
+}
+
+.cm-content {
+  padding-bottom: 12vh;
+}

@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getItems, getItemContent } from "@/lib/items";
 import { buildTree } from "@/lib/tree";
-import TitleBar from "@/components/TitleBar";
-import Sidebar from "@/components/Sidebar";
-import Workstation from "@/components/Workstation";
+import AppShell from "@/components/AppShell";
 
 export default async function Home({
   searchParams,
@@ -23,12 +21,11 @@ export default async function Home({
     : null;
 
   return (
-    <div className="h-screen flex flex-col">
-      <TitleBar email={user?.email ?? ""} />
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar tree={tree} selectedId={selectedFileId} />
-        <Workstation file={selectedFile} />
-      </div>
-    </div>
+    <AppShell
+      email={user?.email ?? ""}
+      tree={tree}
+      selectedId={selectedFileId}
+      selectedFile={selectedFile}
+    />
   );
 }

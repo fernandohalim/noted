@@ -2,15 +2,16 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FilePlus, FolderPlus } from "lucide-react";
+import { FilePlus, FolderPlus, Upload } from "lucide-react";
 import { createItem } from "@/app/actions";
 import { usePending } from "./PendingProvider";
 
 export default function SidebarHeader() {
   const router = useRouter();
+  const { run } = usePending();
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [name, setName] = useState("");
-  const { run } = usePending();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
 
   const submit = async () => {
@@ -20,12 +21,28 @@ export default function SidebarHeader() {
       setName("");
       return;
     }
-    const res = await run(() => createItem(null, name, creating));
-    if (res.data && creating === "file") {
-      router.push(`/?file=${res.data.id}`);
+    inFlight.current = true;
+    try {
+      const res = await run(() => createItem(null, name, creating));
+      if (res.data && creating === "file") {
+        router.push(`/?file=${res.data.id}`);
+      }
+    } finally {
+      inFlight.current = false;
     }
     setCreating(null);
     setName("");
+  };
+
+  const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    for (const file of Array.from(files)) {
+      if (!file.name.toLowerCase().endsWith(".txt")) continue;
+      const content = await file.text();
+      await run(() => createItem(null, file.name, "file", content));
+    }
+    e.target.value = "";
   };
 
   return (
@@ -53,6 +70,21 @@ export default function SidebarHeader() {
           >
             <FolderPlus size={14} />
           </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-1 hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            title="import .txt files"
+          >
+            <Upload size={14} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,text/plain"
+            multiple
+            onChange={handleImportFiles}
+            className="hidden"
+          />
         </div>
       </div>
       {creating && (

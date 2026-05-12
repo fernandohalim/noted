@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import Providers from "@/components/Providers";
 import "./globals.css";
@@ -9,8 +9,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Noted",
-  description: "Notes for programmers, everywhere.",
+  title: "noted",
+  description: "notes for programmers, everywhere.",
+  appleWebApp: {
+    capable: true,
+    title: "noted",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0a0a0a",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

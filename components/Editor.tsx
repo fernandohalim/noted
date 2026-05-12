@@ -1,57 +1,171 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { EditorView } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
+import { RotateCw, WifiOff } from "lucide-react";
 import type { Item } from "@/types";
-import { updateFileContent } from "@/app/actions";
+import { updateFileContent, refreshFileContent } from "@/app/actions";
 import { usePending } from "./PendingProvider";
+import { useConfirm } from "./ConfirmDialog";
 import { customTheme } from "@/lib/editor-theme";
+import { enqueueSave, getPendingSave, removeFromQueue } from "@/lib/sync-queue";
+import { useOnline } from "@/lib/use-online";
 
-type SaveState = "saved" | "unsaved" | "saving" | "error";
+type SaveState = "saved" | "unsaved" | "saving" | "error" | "queued";
 
 export default function Editor({ file }: { file: Item }) {
   const { run } = usePending();
+  const confirm = useConfirm();
+  const isOnline = useOnline();
 
-  // Initialized once per mount; `key={file.id}` in Workstation remounts on file switch.
-  const [content, setContent] = useState(file.content);
-  const [saveState, setSaveState] = useState<SaveState>("saved");
-  const contentRef = useRef(file.content);
+  // If we have a pending save from offline, restore it
+  const queued = typeof window !== "undefined" ? getPendingSave(file.id) : null;
+  const initialContent = queued?.content ?? file.content;
+
+  const [content, setContent] = useState(initialContent);
+  const [saveState, setSaveState] = useState<SaveState>(
+    queued ? "queued" : "saved",
+  );
+
+  const contentRef = useRef(initialContent);
   const savedRef = useRef(file.content);
+  const updatedAtRef = useRef(file.updated_at);
   const savingRef = useRef(false);
+  const editorViewRef = useRef<EditorView | null>(null);
 
-  const save = useCallback(async () => {
-    if (savingRef.current) return;
-    if (contentRef.current === savedRef.current) return;
-    savingRef.current = true;
-    try {
-      const captured = contentRef.current;
-      setSaveState("saving");
-      const res = await run(() => updateFileContent(file.id, captured));
-      if (res.error) {
-        setSaveState("error");
-      } else {
-        savedRef.current = captured;
-        setSaveState(contentRef.current === captured ? "saved" : "unsaved");
+  const replaceEditorContent = useCallback(
+    (newContent: string, newUpdatedAt: string) => {
+      const view = editorViewRef.current;
+      if (view) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: newContent },
+        });
       }
-    } finally {
-      savingRef.current = false;
-    }
-  }, [run, file.id]);
+      contentRef.current = newContent;
+      savedRef.current = newContent;
+      updatedAtRef.current = newUpdatedAt;
+      setContent(newContent);
+      setSaveState("saved");
+      removeFromQueue(file.id);
+    },
+    [file.id],
+  );
 
-  // Ctrl/Cmd+S anywhere while a file is open
+  const save = useCallback(
+    async (force = false): Promise<void> => {
+      if (savingRef.current) return;
+      if (contentRef.current === savedRef.current) return;
+
+      if (!navigator.onLine) {
+        enqueueSave({
+          fileId: file.id,
+          content: contentRef.current,
+          expectedUpdatedAt: updatedAtRef.current,
+          queuedAt: Date.now(),
+        });
+        savedRef.current = contentRef.current;
+        setSaveState("queued");
+        return;
+      }
+
+      savingRef.current = true;
+      try {
+        const captured = contentRef.current;
+        setSaveState("saving");
+        const res = await run(() =>
+          updateFileContent(
+            file.id,
+            captured,
+            force ? undefined : updatedAtRef.current,
+          ),
+        );
+
+        if (res.error === "conflict") {
+          savingRef.current = false;
+          const overwrite = await confirm({
+            title: "this file was changed elsewhere",
+            message:
+              "overwrite the other version with yours, or discard yours and reload?",
+            confirmText: "overwrite",
+            cancelText: "discard mine",
+            danger: true,
+          });
+          if (overwrite) {
+            return save(true);
+          } else {
+            const refresh = await run(() => refreshFileContent(file.id));
+            if ("content" in refresh && refresh.content !== undefined) {
+              replaceEditorContent(refresh.content, refresh.updatedAt);
+            }
+          }
+        } else if (res.error) {
+          setSaveState("error");
+        } else {
+          savedRef.current = captured;
+          if ("updatedAt" in res && res.updatedAt)
+            updatedAtRef.current = res.updatedAt;
+          removeFromQueue(file.id);
+          setSaveState(contentRef.current === captured ? "saved" : "unsaved");
+        }
+      } finally {
+        savingRef.current = false;
+      }
+    },
+    [run, file.id, confirm, replaceEditorContent],
+  );
+
+  const handleRefresh = useCallback(async () => {
+    if (contentRef.current !== savedRef.current) {
+      const ok = await confirm({
+        title: "discard unsaved changes?",
+        message:
+          "reload this file from the server. your unsaved edits will be lost.",
+        confirmText: "reload",
+        danger: true,
+      });
+      if (!ok) return;
+    }
+    const refresh = await run(() => refreshFileContent(file.id));
+    if ("content" in refresh && refresh.content !== undefined) {
+      replaceEditorContent(refresh.content, refresh.updatedAt);
+    }
+  }, [run, file.id, confirm, replaceEditorContent]);
+
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+    const handler = async (e: KeyboardEvent) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      const key = e.key.toLowerCase();
+      if (key === "s") {
         e.preventDefault();
         save();
+      } else if (key === "r" && !e.shiftKey) {
+        e.preventDefault();
+        await handleRefresh();
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [save]);
+  }, [save, handleRefresh]);
+
+  // After SyncManager replays our file's queued save, refresh our updated_at stamp
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.fileId !== file.id) return;
+      refreshFileContent(file.id).then((res) => {
+        if ("updatedAt" in res && res.updatedAt) {
+          updatedAtRef.current = res.updatedAt;
+          if (contentRef.current === savedRef.current) setSaveState("saved");
+        }
+      });
+    };
+    window.addEventListener("noted:synced", handler);
+    return () => window.removeEventListener("noted:synced", handler);
+  }, [file.id]);
 
   const onChange = (value: string) => {
     setContent(value);
@@ -65,18 +179,44 @@ export default function Editor({ file }: { file: Item }) {
         <span className="text-[var(--color-text-muted)] truncate">
           {file.name}
         </span>
-        <SaveIndicator state={saveState} />
+        <div className="flex items-center gap-3">
+          {!isOnline && (
+            <span
+              className="flex items-center gap-1 text-yellow-500"
+              title="working offline"
+            >
+              <WifiOff size={10} />
+              <span className="hidden sm:inline">offline</span>
+            </span>
+          )}
+          <button
+            onClick={handleRefresh}
+            title="reload from server"
+            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          >
+            <RotateCw size={12} />
+          </button>
+          <SaveIndicator state={saveState} />
+        </div>
       </div>
       <div className="flex-1 overflow-hidden">
         <CodeMirror
           value={content}
           onChange={onChange}
-          onBlur={save}
+          onBlur={(event) => {
+            const newTarget = event.relatedTarget as HTMLElement | null;
+            if (newTarget && newTarget.closest(".cm-editor")) return;
+            save();
+          }}
+          onCreateEditor={(view) => {
+            editorViewRef.current = view;
+          }}
           theme={customTheme}
           height="100%"
           extensions={[
             markdown({ codeLanguages: languages }),
             EditorView.lineWrapping,
+            EditorView.scrollMargins.of(() => ({ bottom: 120, top: 40 })),
           ]}
           basicSetup={{
             lineNumbers: false,
@@ -98,6 +238,10 @@ export default function Editor({ file }: { file: Item }) {
 }
 
 function SaveIndicator({ state }: { state: SaveState }) {
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac|iPod|iPhone|iPad/i.test(navigator.platform);
+  const mod = isMac ? "⌘" : "Ctrl";
   switch (state) {
     case "saved":
       return <span className="text-[var(--color-text-muted)]">saved</span>;
@@ -105,11 +249,20 @@ function SaveIndicator({ state }: { state: SaveState }) {
       return (
         <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
-          unsaved · ⌘S to save
+          <span className="hidden sm:inline">unsaved · {mod}S</span>
+          <span className="sm:hidden">unsaved</span>
         </span>
       );
     case "saving":
       return <span className="text-[var(--color-text-muted)]">saving...</span>;
+    case "queued":
+      return (
+        <span className="flex items-center gap-1.5 text-yellow-500">
+          <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+          <span className="hidden sm:inline">queued · syncs when online</span>
+          <span className="sm:hidden">queued</span>
+        </span>
+      );
     case "error":
       return <span className="text-red-400">save failed — retry?</span>;
   }

@@ -6,6 +6,7 @@ import {
   useState,
   useCallback,
   type ReactNode,
+  useEffect,
 } from "react";
 
 interface ConfirmOptions {
@@ -42,6 +43,18 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     state?.resolve(result);
     setState(null);
   };
+
+  useEffect(() => {
+    if (!state) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [state]);
 
   return (
     <ConfirmContext.Provider value={confirm}>

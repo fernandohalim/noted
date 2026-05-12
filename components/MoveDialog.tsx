@@ -37,6 +37,17 @@ export default function MoveDialog({
     })();
   }, []);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
   const handleMove = async (targetId: string | null) => {
     if (inFlight.current) return;
     if (targetId === currentParentId) {

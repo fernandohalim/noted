@@ -2,13 +2,21 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, File, Folder } from "lucide-react";
+import { ChevronRight, File, Folder, MoreHorizontal } from "lucide-react";
 import type { TreeNode } from "@/types";
-import { createItem, renameItem, deleteItem } from "@/app/actions";
+import {
+  createItem,
+  renameItem,
+  deleteItem,
+  moveItem,
+  getFolderTree,
+  refreshFileContent,
+} from "@/app/actions";
 import ContextMenu, { type MenuItem } from "./ContextMenu";
 import MoveDialog from "./MoveDialog";
 import { useConfirm } from "./ConfirmDialog";
 import { usePending } from "./PendingProvider";
+import { downloadTextFile, downloadFolderAsZip } from "@/lib/export";
 
 interface Props {
   node: TreeNode;
@@ -38,6 +46,9 @@ export default function TreeNodeComponent({
   const confirm = useConfirm();
   const { run } = usePending();
   const inFlight = useRef(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClick = () => {
     if (node.type === "folder") onToggle(node.id);
@@ -80,6 +91,61 @@ export default function TreeNodeComponent({
     else if (isSelected) router.push("/");
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("application/x-noted-id", node.id);
+    e.dataTransfer.effectAllowed = "move";
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => setIsDragging(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (node.type !== "folder") return;
+    if (!e.dataTransfer.types.includes("application/x-noted-id")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => setIsDragOver(false);
+
+  const handleDrop = async (e: React.DragEvent) => {
+    if (node.type !== "folder") return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    const draggedId = e.dataTransfer.getData("application/x-noted-id");
+    if (!draggedId || draggedId === node.id) return;
+    const res = await run(() => moveItem(draggedId, node.id));
+    if (res.error) alert(res.error);
+  };
+
+  const handleExport = async () => {
+    if (node.type === "file") {
+      const res = await run(() => refreshFileContent(node.id));
+      if ("content" in res && res.content !== undefined) {
+        downloadTextFile(node.name, res.content);
+      }
+    } else {
+      const res = await run(() => getFolderTree(node.id));
+      if (res.data && res.data.length > 0) {
+        await downloadFolderAsZip(node.name, res.data);
+      }
+    }
+  };
+
+  const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    for (const file of Array.from(files)) {
+      if (!file.name.toLowerCase().endsWith(".txt")) continue;
+      const content = await file.text();
+      await run(() => createItem(node.id, file.name, "file", content));
+    }
+    if (!expandedSet.has(node.id)) onToggle(node.id);
+    e.target.value = "";
+  };
+
   const submitCreateChild = async () => {
     if (inFlight.current) return;
     if (!newName.trim() || !creating) {
@@ -117,6 +183,10 @@ export default function TreeNodeComponent({
               setNewName("");
             },
           },
+          {
+            label: "import .txt files",
+            onClick: () => fileInputRef.current?.click(),
+          },
           { type: "divider" as const },
         ]
       : []),
@@ -128,6 +198,10 @@ export default function TreeNodeComponent({
       },
     },
     { label: "move to...", onClick: () => setMoving(true) },
+    {
+      label: node.type === "folder" ? "export as zip" : "export as .txt",
+      onClick: handleExport,
+    },
     { type: "divider" as const },
     { label: "delete", onClick: handleDelete, danger: true },
   ];
@@ -135,13 +209,23 @@ export default function TreeNodeComponent({
   return (
     <li>
       <div
+        draggable={!renaming}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
-        className={`flex items-center gap-1 px-2 py-1 cursor-pointer text-sm hover:bg-[var(--color-bg-hover)] ${
+        className={`group flex items-center gap-1 px-2 py-1 cursor-pointer text-sm hover:bg-[var(--color-bg-hover)] ${
           isSelected
             ? "bg-[var(--color-bg-elevated)] text-[var(--color-accent)]"
             : ""
-        }`}
+        } ${
+          isDragOver
+            ? "outline outline-1 outline-[var(--color-accent)] -outline-offset-1"
+            : ""
+        } ${isDragging ? "opacity-40" : ""}`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
         {node.type === "folder" ? (
@@ -182,6 +266,20 @@ export default function TreeNodeComponent({
           />
         ) : (
           <span className="truncate">{node.name}</span>
+        )}
+
+        {!renaming && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              setMenu({ x: rect.left - 140, y: rect.bottom + 4 });
+            }}
+            className="ml-auto p-0.5 hover:bg-[var(--color-bg-elevated)] flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            aria-label="more actions"
+          >
+            <MoreHorizontal size={12} />
+          </button>
         )}
       </div>
 
@@ -238,6 +336,17 @@ export default function TreeNodeComponent({
           itemName={node.name}
           currentParentId={node.parent_id}
           onClose={() => setMoving(false)}
+        />
+      )}
+
+      {node.type === "folder" && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".txt,text/plain"
+          multiple
+          onChange={handleImportFiles}
+          className="hidden"
         />
       )}
     </li>

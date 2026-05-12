@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { TreeNode } from "@/types";
 import TreeNodeComponent from "./TreeNode";
+import { moveItem } from "@/app/actions";
+import { usePending } from "./PendingProvider";
 
 export default function FileTree({
   nodes,
@@ -11,7 +13,9 @@ export default function FileTree({
   nodes: TreeNode[];
   selectedId?: string;
 }) {
+  const { run } = usePending();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [isRootDragOver, setIsRootDragOver] = useState(false);
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
@@ -22,18 +26,43 @@ export default function FileTree({
     });
   };
 
+  const handleRootDragOver = (e: React.DragEvent) => {
+    if (!e.dataTransfer.types.includes("application/x-noted-id")) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setIsRootDragOver(true);
+  };
+
+  const handleRootDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsRootDragOver(false);
+    const draggedId = e.dataTransfer.getData("application/x-noted-id");
+    if (!draggedId) return;
+    const res = await run(() => moveItem(draggedId, null));
+    if (res.error) alert(res.error);
+  };
+
   return (
-    <ul>
-      {nodes.map((node) => (
-        <TreeNodeComponent
-          key={node.id}
-          node={node}
-          selectedId={selectedId}
-          depth={0}
-          expandedSet={expanded}
-          onToggle={toggle}
-        />
-      ))}
-    </ul>
+    <div
+      onDragOver={handleRootDragOver}
+      onDragLeave={() => setIsRootDragOver(false)}
+      onDrop={handleRootDrop}
+      className={`min-h-full ${
+        isRootDragOver ? "bg-[var(--color-bg-elevated)]/30" : ""
+      }`}
+    >
+      <ul>
+        {nodes.map((node) => (
+          <TreeNodeComponent
+            key={node.id}
+            node={node}
+            selectedId={selectedId}
+            depth={0}
+            expandedSet={expanded}
+            onToggle={toggle}
+          />
+        ))}
+      </ul>
+    </div>
   );
 }

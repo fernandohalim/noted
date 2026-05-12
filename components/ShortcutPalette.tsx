@@ -6,6 +6,12 @@ import { createItem } from "@/app/actions";
 import { usePending } from "./PendingProvider";
 import { usePrompt } from "./PromptDialog";
 
+const isMac =
+  typeof navigator !== "undefined" &&
+  /Mac|iPod|iPhone|iPad/i.test(navigator.platform);
+const MOD = isMac ? "⌘" : "Ctrl";
+const SHIFT = isMac ? "⇧" : "Shift";
+
 interface Shortcut {
   keys: string[];
   desc: string;
@@ -15,36 +21,39 @@ const groups: { title: string; shortcuts: Shortcut[] }[] = [
   {
     title: "general",
     shortcuts: [
-      { keys: ["⌘", "/"], desc: "show this guide" },
-      { keys: ["esc"], desc: "close any modal or cancel input" },
+      { keys: ["?"], desc: "show this guide" },
+      { keys: ["Esc"], desc: "close any modal or cancel input" },
     ],
   },
   {
     title: "files",
     shortcuts: [
-      { keys: ["⌘", "N"], desc: "new file at root" },
-      { keys: ["⌘", "⇧", "N"], desc: "new folder at root" },
-      { keys: ["enter"], desc: "confirm rename / create" },
+      { keys: ["n"], desc: "new file at root" },
+      { keys: [SHIFT, "N"], desc: "new folder at root" },
+      { keys: ["Enter"], desc: "confirm rename / create" },
+      { keys: ["drag"], desc: "drag a node onto a folder to move it" },
       { keys: ["right-click"], desc: "open context menu on a node" },
     ],
   },
   {
     title: "editor",
     shortcuts: [
-      { keys: ["⌘", "S"], desc: "save current file" },
-      { keys: ["⌘", "F"], desc: "find within current file" },
-      { keys: ["blur"], desc: "auto-save on focus loss" },
-    ],
-  },
-  {
-    title: "search",
-    shortcuts: [
-      { keys: ["⌘", "⇧", "F"], desc: "global search across all files" },
-      { keys: ["↑", "↓"], desc: "navigate results" },
-      { keys: ["enter"], desc: "open selected result" },
+      { keys: [MOD, "S"], desc: "save current file" },
+      { keys: [MOD, "F"], desc: "find/replace within current file" },
+      { keys: [MOD, "R"], desc: "reload file from server" },
     ],
   },
 ];
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  return (
+    el.tagName === "INPUT" ||
+    el.tagName === "TEXTAREA" ||
+    el.isContentEditable ||
+    !!el.closest(".cm-content")
+  );
+}
 
 export default function ShortcutPalette() {
   const router = useRouter();
@@ -54,34 +63,20 @@ export default function ShortcutPalette() {
 
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
-      const mod = e.ctrlKey || e.metaKey;
-      const key = e.key.toLowerCase();
-
-      // Toggle help
-      if (mod && key === "/") {
+      // Esc closes the palette
+      if (e.key === "Escape" && open) {
         e.preventDefault();
-        setOpen((o) => !o);
+        setOpen(false);
         return;
       }
 
-      // Skip mutating shortcuts if user is typing in an input
-      const target = e.target as HTMLElement;
-      const isTyping =
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable ||
-        !!target.closest(".cm-content");
+      if (isTypingTarget(e.target)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
 
-      if (isTyping) return;
-
-      if (mod && e.shiftKey && key === "n") {
+      if (e.key === "?") {
         e.preventDefault();
-        const name = await prompt({
-          title: "new folder",
-          placeholder: "folder name",
-        });
-        if (name) await run(() => createItem(null, name, "folder"));
-      } else if (mod && !e.shiftKey && key === "n") {
+        setOpen((o) => !o);
+      } else if (e.key === "n") {
         e.preventDefault();
         const name = await prompt({
           title: "new file",
@@ -91,13 +86,19 @@ export default function ShortcutPalette() {
           const res = await run(() => createItem(null, name, "file"));
           if (res.data) router.push(`/?file=${res.data.id}`);
         }
+      } else if (e.key === "N") {
+        e.preventDefault();
+        const name = await prompt({
+          title: "new folder",
+          placeholder: "folder name",
+        });
+        if (name) await run(() => createItem(null, name, "folder"));
       }
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [router, run, prompt]);
+  }, [open, router, run, prompt]);
 
-  // Also listen for the title-bar button trigger
   useEffect(() => {
     const handler = () => setOpen((o) => !o);
     window.addEventListener("toggle-shortcuts", handler);

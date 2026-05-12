@@ -6,7 +6,8 @@ import { PromptProvider } from "./PromptDialog";
 import { PendingProvider } from "./PendingProvider";
 import ProgressBar from "./ProgressBar";
 import ShortcutPalette from "./ShortcutPalette";
-import SearchModal from "./SearchModal";
+import SyncManager from "./SyncManager";
+import ServiceWorkerRegister from "./ServiceWorkerRegister";
 
 export default function Providers({ children }: { children: ReactNode }) {
   return (
@@ -16,7 +17,8 @@ export default function Providers({ children }: { children: ReactNode }) {
           <ProgressBar />
           {children}
           <ShortcutPalette />
-          <SearchModal />
+          <SyncManager />
+          <ServiceWorkerRegister />
         </PromptProvider>
       </ConfirmProvider>
     </PendingProvider>

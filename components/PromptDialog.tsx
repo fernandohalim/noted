@@ -6,6 +6,7 @@ import {
   useState,
   useCallback,
   type ReactNode,
+  useEffect,
 } from "react";
 
 interface PromptOptions {
@@ -44,6 +45,18 @@ export function PromptProvider({ children }: { children: ReactNode }) {
     setState(null);
     setValue("");
   };
+
+  useEffect(() => {
+    if (!state) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        close(null);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [state]);
 
   return (
     <PromptContext.Provider value={prompt}>
