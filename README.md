@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="public/icon-512.png" alt="noted logo" width="120" />
+  
+  # 📝 noted.
+  **notes for programmers, everywhere.**
 
-## Getting Started
+  [![Next.js](https://img.shields.io/badge/Next.js_16-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+  [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+  [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com/)
 
-First, run the development server:
+  [Live Demo](https://noted-dev-app.vercel.app/) • [Report a Bug](https://github.com/fernandohalim/noted/issues)
+
+</div>
+
+## 👋 what is noted?
+
+**noted.** is a minimalist, fast, and reliable markdown note-taking app built for programmers. organize your thoughts with a nested file tree, write in a beautiful markdown editor, and sync everything securely to the cloud. completely installable on any device as a progressive web app (pwa).
+
+## ✨ features
+
+* 📝 **markdown first:** beautiful, fast markdown editing with syntax highlighting powered by codemirror.
+* ☁️ **cloud sync:** seamlessly and securely synced across all your devices using supabase.
+* 📱 **pwa ready:** install noted as a native-feeling app on your desktop or android/ios device for quick access.
+* 🗂️ **file system:** organize your thoughts intuitively with a drag-and-drop nested file tree structure.
+* 📦 **export anything:** export your markdown notes as beautiful images or download your entire workspace as a `.zip` file.
+* 🔒 **secure & authenticated:** simple, fast sign-in with google, github, or email.
+
+## 🛠️ tech stack
+
+* **framework:** [Next.js 16](https://nextjs.org/) (App Router)
+* **library:** [React 19](https://react.dev/)
+* **styling:** [TailwindCSS v4](https://tailwindcss.com/)
+* **database & auth:** [Supabase](https://supabase.com/)
+* **editor:** [CodeMirror 6](https://codemirror.net/)
+* **utilities:** html-to-image, jszip, lucide-react
+
+## 🚀 getting started
 
 ```bash
+# clone the repository
+git clone [https://github.com/fernandohalim/noted.git](https://github.com/fernandohalim/noted.git)
+
+# jump into the directory
+cd noted
+
+# install the dependencies
+npm install
+
+# add your supabase keys to .env.local
+# NEXT_PUBLIC_SUPABASE_URL=...
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+
+# start the local development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
