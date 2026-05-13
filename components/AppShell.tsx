@@ -27,7 +27,7 @@ export default function AppShell({
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-dvh flex flex-col">
       <TitleBar
         email={email}
         onToggleSidebar={() => setSidebarOpen((o) => !o)}
@@ -40,7 +40,7 @@ export default function AppShell({
           />
         )}
         <Sidebar tree={tree} selectedId={selectedId} isOpen={sidebarOpen} />
-        <Workstation file={selectedFile} />
+        <Workstation file={selectedFile} tree={tree} />
       </div>
     </div>
   );

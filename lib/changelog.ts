@@ -1,5 +1,15 @@
 export const releases = [  
   {
+    version: "1.0.3",
+    date: "may 2026",
+    title: "editor polish & mobile optimization",
+    badge: "patch",
+    features: [
+      "added a floating formatting toolbar for quick styling and code block insertion",
+      "improved mobile typing experience with centered cursor and dynamic viewport sizing",
+    ],
+  },
+  {
     version: "1.0.2",
     date: "may 2026", 
     title: "editor enhancements & ui polish",
@@ -14,7 +24,7 @@ export const releases = [
   {
     version: "1.0.1",
     date: "may 2026", 
-    title: "bug fixing",
+    title: "minor bug fixing",
     badge: "patch",
     features: [
       "fix minor bugs",

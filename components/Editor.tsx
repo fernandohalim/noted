@@ -2,11 +2,11 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, showTooltip, Tooltip } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { RotateCw, WifiOff } from "lucide-react";
-import type { Item } from "@/types";
+import type { Item, TreeNode } from "@/types";
 import { updateFileContent, refreshFileContent } from "@/app/actions";
 import { usePending } from "./PendingProvider";
 import { useConfirm } from "./ConfirmDialog";
@@ -15,6 +15,7 @@ import { enqueueSave, getPendingSave, removeFromQueue } from "@/lib/sync-queue";
 import { useOnline } from "@/lib/use-online";
 import { indentWithTab } from "@codemirror/commands";
 import { EditorState } from "@codemirror/state";
+import { StateField } from "@codemirror/state";
 
 const foldGutterTheme = EditorView.theme({
   ".cm-foldGutter": {
@@ -22,44 +23,176 @@ const foldGutterTheme = EditorView.theme({
   },
   ".cm-foldGutter .cm-gutterElement": {
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start" /* align to top instead of center */,
     justifyContent: "center",
-    opacity: 0,
-    transition: "opacity 0.1s ease",
-    color: "var(--text-muted)",
+    color: "var(--color-text-muted)",
     cursor: "pointer",
-  },
-  ".cm-gutters:hover .cm-foldGutter .cm-gutterElement": {
-    opacity: 1,
   },
   ".cm-foldMarker": {
     fontSize: "13px",
     lineHeight: "1",
   },
   ".cm-foldMarker:hover": {
-    color: "var(--text)",
+    color: "var(--color-text)",
   },
   ".cm-foldPlaceholder": {
-    backgroundColor: "var(--bg-elevated)",
-    border: "1px solid var(--border)",
-    color: "var(--text-muted)",
+    backgroundColor: "var(--color-bg-elevated)",
+    border: "1px solid var(--color-border)",
+    color: "var(--color-text-muted)",
     padding: "0 4px",
-    borderRadius: "4px",
+    borderRadius: "0px" /* removed rounding to match your theme */,
     margin: "0 4px",
     cursor: "pointer",
   },
   ".cm-foldPlaceholder:hover": {
-    backgroundColor: "var(--bg-hover)",
-    color: "var(--text)",
+    backgroundColor: "var(--color-bg-hover)",
+    color: "var(--color-text)",
   },
 });
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "queued";
 
-export default function Editor({ file }: { file: Item }) {
+function getFilePath(
+  tree: TreeNode[],
+  targetId: string,
+  currentPath: string[] = [],
+): string[] | null {
+  for (const node of tree) {
+    if (node.id === targetId) return [...currentPath, node.name];
+    if (node.children) {
+      const found = getFilePath(node.children, targetId, [
+        ...currentPath,
+        node.name,
+      ]);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// helper to wrap selected text
+function wrapSelection(view: EditorView, before: string, after: string) {
+  const range = view.state.selection.ranges[0];
+  if (!range) return;
+  view.dispatch({
+    changes: [
+      { from: range.from, insert: before },
+      { from: range.to, insert: after },
+    ],
+    selection: {
+      anchor: range.from + before.length,
+      head: range.to + before.length,
+    },
+  });
+}
+
+// defines the tooltip extension
+const selectionTooltip = StateField.define<readonly Tooltip[]>({
+  create(state) {
+    return getTooltip(state);
+  },
+  update(tooltips, tr) {
+    if (!tr.docChanged && !tr.selection) return tooltips;
+    return getTooltip(tr.state);
+  },
+  provide: (f) => showTooltip.computeN([f], (state) => state.field(f)),
+});
+
+// builds the actual dom element for the tooltip
+function getTooltip(state: any): readonly Tooltip[] {
+  const ranges = state.selection.ranges;
+  if (ranges.length === 0 || ranges[0].empty) return [];
+
+  const range = ranges[0];
+  return [
+    {
+      pos: Math.min(range.head, range.anchor),
+      above: true,
+      strictSide: true,
+      arrow: true,
+      create: (view: EditorView) => {
+        const dom = document.createElement("div");
+        // using --color-bg-elevated and removing rounded classes
+        dom.className =
+          "flex items-center gap-1 p-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-none shadow-lg text-xs z-50 text-[var(--color-text)]";
+
+        const boldBtn = document.createElement("button");
+        boldBtn.textContent = "B";
+        boldBtn.className =
+          "font-bold px-2 py-1 hover:bg-[var(--color-bg-hover)] rounded-none cursor-pointer";
+        boldBtn.onclick = (e) => {
+          e.preventDefault();
+          wrapSelection(view, "**", "**");
+          view.focus();
+        };
+        dom.appendChild(boldBtn);
+
+        const italicBtn = document.createElement("button");
+        italicBtn.textContent = "I";
+        italicBtn.className =
+          "italic px-2 py-1 hover:bg-[var(--color-bg-hover)] rounded-none cursor-pointer";
+        italicBtn.onclick = (e) => {
+          e.preventDefault();
+          wrapSelection(view, "*", "*");
+          view.focus();
+        };
+        dom.appendChild(italicBtn);
+
+        const select = document.createElement("select");
+        // ensuring text color is explicitly set so it doesn't wash out
+        select.className =
+          "ml-1 px-2 py-1 bg-transparent hover:bg-[var(--color-bg-hover)] rounded-none outline-none cursor-pointer text-[var(--color-text)]";
+
+        const langs = [
+          { val: "", label: "code block..." },
+          { val: "js", label: "javascript" },
+          { val: "ts", label: "typescript" },
+          { val: "sql", label: "sql" },
+          { val: "python", label: "python" },
+          { val: "html", label: "html" },
+          { val: "css", label: "css" },
+          { val: "json", label: "json" },
+        ];
+
+        langs.forEach((l) => {
+          const opt = document.createElement("option");
+          opt.value = l.val;
+          opt.textContent = l.label;
+          // matching the dropdown background to the tooltip container
+          opt.className =
+            "bg-[var(--color-bg-elevated)] text-[var(--color-text)]";
+          select.appendChild(opt);
+        });
+
+        select.onchange = (e) => {
+          const val = (e.target as HTMLSelectElement).value;
+          if (val) {
+            wrapSelection(view, "\n```" + val + "\n", "\n```\n");
+            select.value = "";
+            view.focus();
+          }
+        };
+        dom.appendChild(select);
+
+        return { dom };
+      },
+    },
+  ];
+}
+
+export default function Editor({
+  file,
+  tree,
+}: {
+  file: Item;
+  tree: TreeNode[];
+}) {
   const { run } = usePending();
   const confirm = useConfirm();
   const isOnline = useOnline();
+
+  const pathArray = getFilePath(tree, file.id);
+  const displayPath = pathArray ? pathArray.join(" / ") : file.name;
 
   // If we have a pending save from offline, restore it
   const queued = typeof window !== "undefined" ? getPendingSave(file.id) : null;
@@ -216,7 +349,9 @@ export default function Editor({ file }: { file: Item }) {
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
       <div className="h-9 border-b border-border flex items-center justify-between px-3 text-xs shrink-0">
-        <span className="text-text-muted truncate">{file.name}</span>
+        <span className="text-text-muted truncate" title={displayPath}>
+          {displayPath}
+        </span>{" "}
         <div className="flex items-center gap-3">
           {!isOnline && (
             <span
@@ -237,7 +372,10 @@ export default function Editor({ file }: { file: Item }) {
           <SaveIndicator state={saveState} />
         </div>
       </div>
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
+        {saveState === "saving" && (
+          <div className="absolute inset-0 bg-black/20 z-10 pointer-events-none transition-colors" />
+        )}{" "}
         <CodeMirror
           value={content}
           onChange={onChange}
@@ -254,10 +392,17 @@ export default function Editor({ file }: { file: Item }) {
           extensions={[
             markdown({ codeLanguages: languages }),
             EditorView.lineWrapping,
-            EditorView.scrollMargins.of(() => ({ bottom: 120, top: 40 })),
+            EditorView.scrollMargins.of(() => ({
+              bottom:
+                typeof window !== "undefined" && window.innerWidth < 640
+                  ? window.innerHeight / 2
+                  : 120,
+              top: 40,
+            })),
             keymap.of([indentWithTab]),
             EditorState.tabSize.of(2),
             foldGutterTheme,
+            selectionTooltip,
           ]}
           basicSetup={{
             lineNumbers: false,
