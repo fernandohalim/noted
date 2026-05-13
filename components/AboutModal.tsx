@@ -15,7 +15,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
       <div className="fixed inset-0" onClick={onClose}></div>
 
       {/* modal body */}
-      <div className="bg-[var(--color-bg)] border border-[var(--color-border)] w-full max-w-sm rounded shadow-2xl flex flex-col relative z-10 font-mono overflow-hidden">
+      <div className="bg-[var(--color-bg)] border border-[var(--color-border)] w-full max-w-sm shadow-2xl flex flex-col relative z-10 font-mono overflow-hidden">
         {/* header */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
           <span className="text-[var(--color-text)] text-sm font-bold">
@@ -51,7 +51,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 onClose();
                 router.push("/changelog");
               }}
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer text-sm"
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer text-sm"
             >
               <span className="text-[var(--color-text)]">changelog</span>
               <span className="text-xs text-[var(--color-text-muted)]">
@@ -63,7 +63,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
               href="https://github.com/fernandohalim/noted"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer text-sm"
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer text-sm"
             >
               <span className="text-[var(--color-text)]">source code</span>
               <span className="text-xs text-[var(--color-text-muted)]">

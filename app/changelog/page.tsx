@@ -31,14 +31,14 @@ export default function Changelog() {
           {releases.map((release) => (
             <div
               key={release.version}
-              className="border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-6 rounded"
+              className="border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-6"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-[var(--color-border)] pb-4 gap-2">
                 <div className="flex items-center gap-3">
                   <h2 className="text-lg font-bold text-[var(--color-text)]">
                     {release.title}
                   </h2>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-accent)] rounded">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-accent)]">
                     v{release.version}
                   </span>
                 </div>
