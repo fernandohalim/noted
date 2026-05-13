@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { getItems, getItemContent } from "@/lib/items";
-import { buildTree } from "@/lib/tree";
 import AppShell from "@/components/AppShell";
 
 export default async function Home({
@@ -15,7 +14,6 @@ export default async function Home({
   const { file: selectedFileId } = await searchParams;
 
   const items = await getItems();
-  const tree = buildTree(items);
   const selectedFile = selectedFileId
     ? await getItemContent(selectedFileId)
     : null;
@@ -23,7 +21,7 @@ export default async function Home({
   return (
     <AppShell
       email={user?.email ?? ""}
-      tree={tree}
+      initialItems={items}
       selectedId={selectedFileId}
       selectedFile={selectedFile}
     />
