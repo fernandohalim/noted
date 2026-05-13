@@ -1,18 +1,16 @@
-"use client";
-
+import type { TreeNode } from "@/types";
 import SidebarHeader from "./SidebarHeader";
 import FileTree from "./FileTree";
-import { useTree } from "./TreeProvider";
 
 export default function Sidebar({
+  tree,
   selectedId,
   isOpen = false,
 }: {
+  tree: TreeNode[];
   selectedId?: string;
   isOpen?: boolean;
 }) {
-  const { tree } = useTree();
-
   return (
     <aside
       className={`

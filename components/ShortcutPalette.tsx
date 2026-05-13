@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createItem } from "@/app/actions";
 import { usePending } from "./PendingProvider";
-import { useTree } from "./TreeProvider";
 import { usePrompt } from "./PromptDialog";
 
 const isMac =
@@ -77,7 +77,6 @@ function isTypingTarget(target: EventTarget | null): boolean {
 export default function ShortcutPalette() {
   const router = useRouter();
   const { run } = usePending();
-  const { createItem } = useTree();
   const prompt = usePrompt();
   const [open, setOpen] = useState(false);
 
@@ -103,9 +102,8 @@ export default function ShortcutPalette() {
           placeholder: "filename.txt",
         });
         if (name) {
-          const res = await createItem(null, name, "file");
+          const res = await run(() => createItem(null, name, "file"));
           if (res.data) router.push(`/?file=${res.data.id}`);
-          else if (res.error) alert(res.error);
         }
       } else if (e.key === "N") {
         e.preventDefault();
@@ -113,10 +111,7 @@ export default function ShortcutPalette() {
           title: "new folder",
           placeholder: "folder name",
         });
-        if (name) {
-          const res = await createItem(null, name, "folder");
-          if (res.error) alert(res.error);
-        }
+        if (name) await run(() => createItem(null, name, "folder"));
       }
     };
     document.addEventListener("keydown", handler);

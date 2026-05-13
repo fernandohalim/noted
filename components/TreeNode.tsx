@@ -4,13 +4,21 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, File, Folder, MoreHorizontal } from "lucide-react";
 import type { TreeNode } from "@/types";
-import { getFolderTree, refreshFileContent } from "@/app/actions";
+import {
+  createItem,
+  renameItem,
+  deleteItem,
+  moveItem,
+  getFolderTree,
+  refreshFileContent,
+} from "@/app/actions";
 import ContextMenu, { type MenuItem } from "./ContextMenu";
 import MoveDialog from "./MoveDialog";
 import { useConfirm } from "./ConfirmDialog";
 import { usePending } from "./PendingProvider";
 import { downloadTextFile, downloadFolderAsZip } from "@/lib/export";
-import { useTree, isPendingItemId } from "./TreeProvider";
+import { usePendingItems } from "./PendingItemsProvider";
+import { Loader2 } from "lucide-react";
 
 interface Props {
   node: TreeNode;
@@ -39,15 +47,15 @@ export default function TreeNodeComponent({
   const [newName, setNewName] = useState("");
   const confirm = useConfirm();
   const { run } = usePending();
-  const { renameItem, deleteItem, moveItem, createItem } = useTree();
   const inFlight = useRef(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const busy = isPendingItemId(node.id);
+  const { isPending, withPending } = usePendingItems();
+  const [createBusy, setCreateBusy] = useState(false);
+  const busy = isPending(node.id);
 
   const handleClick = () => {
-    if (busy) return;
     if (node.type === "folder") onToggle(node.id);
     else router.push(`/?file=${node.id}`);
   };
@@ -60,9 +68,9 @@ export default function TreeNodeComponent({
   const submitRename = async () => {
     if (inFlight.current) return;
     if (name.trim() && name !== node.name) {
-      inFlight.current = true;
-      const res = await renameItem(node.id, name);
-      inFlight.current = false;
+      const res = await withPending(node.id, () =>
+        run(() => renameItem(node.id, name)),
+      );
       if (res.error) {
         alert(res.error);
         setName(node.name);
@@ -85,14 +93,11 @@ export default function TreeNodeComponent({
       danger: true,
     });
     if (!ok) return;
-
-    // Navigate away BEFORE awaiting the server so the editor doesn't
-    // briefly render against an item we've optimistically removed.
-    const wasSelected = isSelected;
-    if (wasSelected) router.push("/");
-
-    const res = await deleteItem(node.id);
+    const res = await withPending(node.id, () =>
+      run(() => deleteItem(node.id)),
+    );
     if (res.error) alert(res.error);
+    else if (isSelected) router.push("/");
   };
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -120,7 +125,9 @@ export default function TreeNodeComponent({
     setIsDragOver(false);
     const draggedId = e.dataTransfer.getData("application/x-noted-id");
     if (!draggedId || draggedId === node.id) return;
-    const res = await moveItem(draggedId, node.id);
+    const res = await withPending(draggedId, () =>
+      run(() => moveItem(draggedId, node.id)),
+    );
     if (res.error) alert(res.error);
   };
 
@@ -144,22 +151,22 @@ export default function TreeNodeComponent({
     for (const file of Array.from(files)) {
       if (!file.name.toLowerCase().endsWith(".txt")) continue;
       const content = await file.text();
-      await createItem(node.id, file.name, "file", content);
+      await run(() => createItem(node.id, file.name, "file", content));
     }
     if (!expandedSet.has(node.id)) onToggle(node.id);
     e.target.value = "";
   };
 
   const submitCreateChild = async () => {
-    if (inFlight.current) return;
+    if (inFlight.current || createBusy) return;
     if (!newName.trim() || !creating) {
       setCreating(null);
       setNewName("");
       return;
     }
-    inFlight.current = true;
+    setCreateBusy(true);
     try {
-      const res = await createItem(node.id, newName, creating);
+      const res = await run(() => createItem(node.id, newName, creating));
       if (res.error) {
         alert(res.error);
       } else {
@@ -169,7 +176,7 @@ export default function TreeNodeComponent({
         }
       }
     } finally {
-      inFlight.current = false;
+      setCreateBusy(false);
     }
     setCreating(null);
     setNewName("");
@@ -224,10 +231,10 @@ export default function TreeNodeComponent({
         onDragOver={busy ? undefined : handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={busy ? undefined : handleDrop}
-        onClick={handleClick}
+        onClick={busy ? undefined : handleClick}
         onContextMenu={busy ? undefined : handleContextMenu}
-        className={`group flex items-center gap-1 px-2 py-1 text-sm hover:bg-bg-hover cursor-pointer ${
-          busy ? "opacity-60" : ""
+        className={`group flex items-center gap-1 px-2 py-1 text-sm hover:bg-bg-hover ${
+          busy ? "opacity-50 cursor-wait pointer-events-none" : "cursor-pointer"
         } ${isSelected ? "bg-bg-elevated text-accent" : ""} ${
           isDragOver ? "outline outline-accent -outline-offset-1" : ""
         } ${isDragging ? "opacity-40" : ""}`}
@@ -266,18 +273,26 @@ export default function TreeNodeComponent({
         ) : (
           <span className="truncate">{node.name}</span>
         )}
-        {!renaming && !busy && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const rect = e.currentTarget.getBoundingClientRect();
-              setMenu({ x: rect.left - 140, y: rect.bottom + 4 });
-            }}
-            className="ml-auto p-0.5 hover:bg-bg-elevated shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-            aria-label="more actions"
-          >
-            <MoreHorizontal size={12} />
-          </button>
+
+        {busy ? (
+          <Loader2
+            size={12}
+            className="ml-auto shrink-0 animate-spin text-text-muted"
+          />
+        ) : (
+          !renaming && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMenu({ x: rect.left - 140, y: rect.bottom + 4 });
+              }}
+              className="ml-auto p-0.5 hover:bg-bg-elevated shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+              aria-label="more actions"
+            >
+              <MoreHorizontal size={12} />
+            </button>
+          )
         )}
       </div>
 
@@ -291,6 +306,7 @@ export default function TreeNodeComponent({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onBlur={submitCreateChild}
+            disabled={createBusy}
             onKeyDown={(e) => {
               if (e.key === "Enter") submitCreateChild();
               if (e.key === "Escape") {
@@ -299,8 +315,11 @@ export default function TreeNodeComponent({
               }
             }}
             placeholder={creating === "file" ? "filename.txt" : "folder name"}
-            className="flex-1 px-1 py-0.5 bg-bg-elevated border border-accent outline-none text-sm"
+            className="flex-1 px-1 py-0.5 bg-bg-elevated border border-accent outline-none text-sm disabled:opacity-50"
           />
+          {createBusy && (
+            <Loader2 size={12} className="animate-spin text-text-muted" />
+          )}
         </div>
       )}
 

@@ -3,21 +3,18 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FilePlus, FolderPlus, Upload } from "lucide-react";
-import { createItem as createItemAction } from "@/app/actions";
+import { createItem } from "@/app/actions";
 import { usePending } from "./PendingProvider";
-import { useTree } from "./TreeProvider";
 import { Loader2 } from "lucide-react";
 
 export default function SidebarHeader() {
   const router = useRouter();
+  const { run } = usePending();
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [name, setName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
-
-  const { run } = usePending();
-  const { createItem } = useTree();
 
   const submit = async () => {
     if (inFlight.current || busy) return;
@@ -29,11 +26,9 @@ export default function SidebarHeader() {
     inFlight.current = true;
     setBusy(true);
     try {
-      const res = await createItem(null, name, creating);
+      const res = await run(() => createItem(null, name, creating));
       if (res.data && creating === "file") {
         router.push(`/?file=${res.data.id}`);
-      } else if (res.error) {
-        alert(res.error);
       }
     } finally {
       inFlight.current = false;
@@ -51,7 +46,7 @@ export default function SidebarHeader() {
       for (const file of Array.from(files)) {
         if (!file.name.toLowerCase().endsWith(".txt")) continue;
         const content = await file.text();
-        await run(() => createItemAction(null, file.name, "file", content));
+        await run(() => createItem(null, file.name, "file", content));
       }
     } finally {
       setBusy(false);
@@ -111,6 +106,7 @@ export default function SidebarHeader() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={submit}
+            disabled={busy}
             onKeyDown={(e) => {
               if (e.key === "Enter") submit();
               if (e.key === "Escape") {
@@ -119,8 +115,11 @@ export default function SidebarHeader() {
               }
             }}
             placeholder={creating === "file" ? "filename.txt" : "folder name"}
-            className="flex-1 px-2 py-1 bg-bg-elevated border border-accent outline-none text-xs"
+            className="flex-1 px-2 py-1 bg-bg-elevated border border-accent outline-none text-xs disabled:opacity-50"
           />
+          {busy && (
+            <Loader2 size={12} className="animate-spin text-text-muted" />
+          )}
         </div>
       )}
     </div>

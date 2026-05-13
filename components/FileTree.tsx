@@ -3,7 +3,9 @@
 import { useState } from "react";
 import type { TreeNode } from "@/types";
 import TreeNodeComponent from "./TreeNode";
-import { useTree } from "./TreeProvider";
+import { moveItem } from "@/app/actions";
+import { usePending } from "./PendingProvider";
+import { usePendingItems } from "./PendingItemsProvider";
 
 export default function FileTree({
   nodes,
@@ -12,7 +14,7 @@ export default function FileTree({
   nodes: TreeNode[];
   selectedId?: string;
 }) {
-  const { moveItem } = useTree();
+  const { run } = usePending();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [isRootDragOver, setIsRootDragOver] = useState(false);
 
@@ -32,12 +34,16 @@ export default function FileTree({
     setIsRootDragOver(true);
   };
 
+  const { withPending } = usePendingItems();
+
   const handleRootDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsRootDragOver(false);
     const draggedId = e.dataTransfer.getData("application/x-noted-id");
     if (!draggedId) return;
-    const res = await moveItem(draggedId, null);
+    const res = await withPending(draggedId, () =>
+      run(() => moveItem(draggedId, null)),
+    );
     if (res.error) alert(res.error);
   };
 

@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Folder, Home } from "lucide-react";
+import { moveItem } from "@/app/actions";
+import { createClient } from "@/lib/supabase/client";
 import { buildTree } from "@/lib/tree";
-import type { TreeNode } from "@/types";
-import { useTree } from "./TreeProvider";
+import type { ItemMeta, TreeNode } from "@/types";
+import { usePending } from "./PendingProvider";
 
 export default function MoveDialog({
   itemId,
@@ -17,14 +19,23 @@ export default function MoveDialog({
   currentParentId: string | null;
   onClose: () => void;
 }) {
-  const { items, moveItem } = useTree();
+  const [tree, setTree] = useState<TreeNode[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const { run } = usePending();
   const inFlight = useRef(false);
 
-  const folderTree = useMemo(
-    () => buildTree(items.filter((i) => i.type === "folder")),
-    [items],
-  );
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("items")
+        .select("id, user_id, parent_id, name, type, created_at, updated_at")
+        .eq("type", "folder");
+      if (data) setTree(buildTree(data as ItemMeta[]));
+      setLoading(false);
+    })();
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -43,9 +54,7 @@ export default function MoveDialog({
       onClose();
       return;
     }
-    inFlight.current = true;
-    const res = await moveItem(itemId, targetId);
-    inFlight.current = false;
+    const res = await run(() => moveItem(itemId, targetId));
     if (res.error) alert(res.error);
     onClose();
   };
@@ -102,14 +111,24 @@ export default function MoveDialog({
           <h3 className="text-sm">move &quot;{itemName}&quot; to...</h3>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
-          <div
-            onClick={() => handleMove(null)}
-            className="flex items-center gap-2 px-3 py-1 cursor-pointer text-sm hover:bg-[var(--color-bg-hover)]"
-          >
-            <Home size={14} className="text-[var(--color-text-muted)]" />
-            <span>root</span>
-          </div>
-          {folderTree.map((n) => renderFolder(n, 0))}
+          {loading ? (
+            <div className="px-3 py-2 text-xs text-[var(--color-text-muted)]">
+              loading...
+            </div>
+          ) : (
+            <>
+              <div
+                onClick={() => handleMove(null)}
+                className="flex items-center gap-2 px-3 py-1 cursor-pointer text-sm hover:bg-[var(--color-bg-hover)]"
+              >
+                <Home size={14} className="text-[var(--color-text-muted)]" />
+                <span>root</span>
+              </div>
+              {tree
+                .filter((n) => n.type === "folder")
+                .map((n) => renderFolder(n, 0))}
+            </>
+          )}
         </div>
         <div className="px-4 py-3 border-t border-[var(--color-border)] flex justify-end">
           <button

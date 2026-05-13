@@ -1,12 +1,13 @@
-"use client";
-
-import type { Item } from "@/types";
+import type { Item, TreeNode } from "@/types";
 import Editor from "./Editor";
-import { useTree } from "./TreeProvider";
 
-export default function Workstation({ file }: { file: Item | null }) {
-  const { tree } = useTree();
-
+export default function Workstation({
+  file,
+  tree,
+}: {
+  file: Item | null;
+  tree: TreeNode[];
+}) {
   if (!file) {
     return (
       <main className="flex-1 flex items-center justify-center text-sm text-text-muted">

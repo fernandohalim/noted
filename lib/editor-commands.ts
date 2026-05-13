@@ -59,23 +59,25 @@ const smartTab = (view: EditorView): boolean => {
   const { state } = view;
   const range = state.selection.main;
 
-  // No selection — insert spaces to next tab stop
-  if (range.empty) {
-    const line = state.doc.lineAt(range.from);
-    const tabSize = state.tabSize;
-    const col = range.from - line.from;
-    const spacesNeeded = tabSize - (col % tabSize);
-    const spaces = " ".repeat(spacesNeeded);
+  const startLine = state.doc.lineAt(range.from);
+  const endLine = state.doc.lineAt(range.to);
 
-    view.dispatch({
-      changes: { from: range.from, insert: spaces },
-      selection: { anchor: range.from + spaces.length },
-    });
-    return true;
+  // Multi-line selection — indent every line
+  if (startLine.number !== endLine.number) {
+    return indentMore(view);
   }
 
-  // Any non-empty selection (single-line or multi-line) — indent
-  return indentMore(view);
+  // Single line / cursor — insert spaces to next tab stop
+  const tabSize = state.tabSize;
+  const col = range.from - startLine.from;
+  const spacesNeeded = tabSize - (col % tabSize);
+  const spaces = " ".repeat(spacesNeeded);
+
+  view.dispatch({
+    changes: { from: range.from, to: range.to, insert: spaces },
+    selection: { anchor: range.from + spaces.length },
+  });
+  return true;
 };
 
 const wrap = (chars: string) => (view: EditorView): boolean => {
