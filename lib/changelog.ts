@@ -1,5 +1,18 @@
 export const releases = [  
   {
+  version: "1.1",
+  date: "may 2026",
+  title: "editor power-ups & ux polish",
+  badge: "feature",
+  features: [
+    "auto-indent on enter — new lines inherit the previous line's indentation",
+    "tab now jumps to the next tab stop when typing; still indents the whole block when multiple lines are selected",
+    "new integrated shortcut, click (?) icon",
+    "inline loading indicators on rename, delete, move, and create — affected items dim and show a spinner",
+    "fixed mobile bug where the title bar could scroll off-screen after opening the keyboard on a long note",
+  ],
+},
+  {
     version: "1.0.3",
     date: "may 2026",
     title: "editor polish & mobile optimization",

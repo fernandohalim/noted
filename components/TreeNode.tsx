@@ -17,6 +17,8 @@ import MoveDialog from "./MoveDialog";
 import { useConfirm } from "./ConfirmDialog";
 import { usePending } from "./PendingProvider";
 import { downloadTextFile, downloadFolderAsZip } from "@/lib/export";
+import { usePendingItems } from "./PendingItemsProvider";
+import { Loader2 } from "lucide-react";
 
 interface Props {
   node: TreeNode;
@@ -49,6 +51,9 @@ export default function TreeNodeComponent({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isPending, withPending } = usePendingItems();
+  const [createBusy, setCreateBusy] = useState(false);
+  const busy = isPending(node.id);
 
   const handleClick = () => {
     if (node.type === "folder") onToggle(node.id);
@@ -63,7 +68,9 @@ export default function TreeNodeComponent({
   const submitRename = async () => {
     if (inFlight.current) return;
     if (name.trim() && name !== node.name) {
-      const res = await run(() => renameItem(node.id, name));
+      const res = await withPending(node.id, () =>
+        run(() => renameItem(node.id, name)),
+      );
       if (res.error) {
         alert(res.error);
         setName(node.name);
@@ -86,7 +93,9 @@ export default function TreeNodeComponent({
       danger: true,
     });
     if (!ok) return;
-    const res = await run(() => deleteItem(node.id));
+    const res = await withPending(node.id, () =>
+      run(() => deleteItem(node.id)),
+    );
     if (res.error) alert(res.error);
     else if (isSelected) router.push("/");
   };
@@ -116,7 +125,9 @@ export default function TreeNodeComponent({
     setIsDragOver(false);
     const draggedId = e.dataTransfer.getData("application/x-noted-id");
     if (!draggedId || draggedId === node.id) return;
-    const res = await run(() => moveItem(draggedId, node.id));
+    const res = await withPending(draggedId, () =>
+      run(() => moveItem(draggedId, node.id)),
+    );
     if (res.error) alert(res.error);
   };
 
@@ -147,20 +158,25 @@ export default function TreeNodeComponent({
   };
 
   const submitCreateChild = async () => {
-    if (inFlight.current) return;
+    if (inFlight.current || createBusy) return;
     if (!newName.trim() || !creating) {
       setCreating(null);
       setNewName("");
       return;
     }
-    const res = await run(() => createItem(node.id, newName, creating));
-    if (res.error) {
-      alert(res.error);
-    } else {
-      if (!expandedSet.has(node.id)) onToggle(node.id);
-      if (res.data && creating === "file") {
-        router.push(`/?file=${res.data.id}`);
+    setCreateBusy(true);
+    try {
+      const res = await run(() => createItem(node.id, newName, creating));
+      if (res.error) {
+        alert(res.error);
+      } else {
+        if (!expandedSet.has(node.id)) onToggle(node.id);
+        if (res.data && creating === "file") {
+          router.push(`/?file=${res.data.id}`);
+        }
       }
+    } finally {
+      setCreateBusy(false);
     }
     setCreating(null);
     setNewName("");
@@ -209,17 +225,17 @@ export default function TreeNodeComponent({
   return (
     <li>
       <div
-        draggable={!renaming}
-        onDragStart={handleDragStart}
+        draggable={!renaming && !busy}
+        onDragStart={busy ? undefined : handleDragStart}
         onDragEnd={handleDragEnd}
-        onDragOver={handleDragOver}
+        onDragOver={busy ? undefined : handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={handleClick}
-        onContextMenu={handleContextMenu}
-        className={`group flex items-center gap-1 px-2 py-1 cursor-pointer text-sm hover:bg-bg-hover ${
-          isSelected ? "bg-bg-elevated text-accent" : ""
-        } ${
+        onDrop={busy ? undefined : handleDrop}
+        onClick={busy ? undefined : handleClick}
+        onContextMenu={busy ? undefined : handleContextMenu}
+        className={`group flex items-center gap-1 px-2 py-1 text-sm hover:bg-bg-hover ${
+          busy ? "opacity-50 cursor-wait pointer-events-none" : "cursor-pointer"
+        } ${isSelected ? "bg-bg-elevated text-accent" : ""} ${
           isDragOver ? "outline outline-accent -outline-offset-1" : ""
         } ${isDragging ? "opacity-40" : ""}`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
@@ -258,31 +274,39 @@ export default function TreeNodeComponent({
           <span className="truncate">{node.name}</span>
         )}
 
-        {!renaming && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              const rect = e.currentTarget.getBoundingClientRect();
-              setMenu({ x: rect.left - 140, y: rect.bottom + 4 });
-            }}
-            className="ml-auto p-0.5 hover:bg-bg-elevated shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-            aria-label="more actions"
-          >
-            <MoreHorizontal size={12} />
-          </button>
+        {busy ? (
+          <Loader2
+            size={12}
+            className="ml-auto shrink-0 animate-spin text-text-muted"
+          />
+        ) : (
+          !renaming && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMenu({ x: rect.left - 140, y: rect.bottom + 4 });
+              }}
+              className="ml-auto p-0.5 hover:bg-bg-elevated shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+              aria-label="more actions"
+            >
+              <MoreHorizontal size={12} />
+            </button>
+          )
         )}
       </div>
 
       {creating && (
         <div
           style={{ paddingLeft: `${(depth + 1) * 12 + 8}px` }}
-          className="pr-2 py-1"
+          className="pr-2 py-1 flex items-center gap-1"
         >
           <input
             autoFocus
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onBlur={submitCreateChild}
+            disabled={createBusy}
             onKeyDown={(e) => {
               if (e.key === "Enter") submitCreateChild();
               if (e.key === "Escape") {
@@ -291,8 +315,11 @@ export default function TreeNodeComponent({
               }
             }}
             placeholder={creating === "file" ? "filename.txt" : "folder name"}
-            className="w-full px-1 py-0.5 bg-bg-elevated border border-accent outline-none text-sm"
+            className="flex-1 px-1 py-0.5 bg-bg-elevated border border-accent outline-none text-sm disabled:opacity-50"
           />
+          {createBusy && (
+            <Loader2 size={12} className="animate-spin text-text-muted" />
+          )}
         </div>
       )}
 

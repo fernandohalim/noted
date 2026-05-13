@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FilePlus, FolderPlus, Upload } from "lucide-react";
 import { createItem } from "@/app/actions";
 import { usePending } from "./PendingProvider";
+import { Loader2 } from "lucide-react";
 
 export default function SidebarHeader() {
   const router = useRouter();
@@ -13,15 +14,17 @@ export default function SidebarHeader() {
   const [name, setName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inFlight = useRef(false);
+  const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    if (inFlight.current) return;
+    if (inFlight.current || busy) return;
     if (!name.trim() || !creating) {
       setCreating(null);
       setName("");
       return;
     }
     inFlight.current = true;
+    setBusy(true);
     try {
       const res = await run(() => createItem(null, name, creating));
       if (res.data && creating === "file") {
@@ -29,6 +32,7 @@ export default function SidebarHeader() {
       }
     } finally {
       inFlight.current = false;
+      setBusy(false);
     }
     setCreating(null);
     setName("");
@@ -37,12 +41,17 @@ export default function SidebarHeader() {
   const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    for (const file of Array.from(files)) {
-      if (!file.name.toLowerCase().endsWith(".txt")) continue;
-      const content = await file.text();
-      await run(() => createItem(null, file.name, "file", content));
+    setBusy(true);
+    try {
+      for (const file of Array.from(files)) {
+        if (!file.name.toLowerCase().endsWith(".txt")) continue;
+        const content = await file.text();
+        await run(() => createItem(null, file.name, "file", content));
+      }
+    } finally {
+      setBusy(false);
+      e.target.value = "";
     }
-    e.target.value = "";
   };
 
   return (
@@ -57,6 +66,7 @@ export default function SidebarHeader() {
             }}
             className="p-1 hover:bg-bg-hover text-text-muted hover:text-text"
             title="new file"
+            disabled={busy}
           >
             <FilePlus size={14} />
           </button>
@@ -67,6 +77,7 @@ export default function SidebarHeader() {
             }}
             className="p-1 hover:bg-bg-hover text-text-muted hover:text-text"
             title="new folder"
+            disabled={busy}
           >
             <FolderPlus size={14} />
           </button>
@@ -74,6 +85,7 @@ export default function SidebarHeader() {
             onClick={() => fileInputRef.current?.click()}
             className="p-1 hover:bg-bg-hover text-text-muted hover:text-text"
             title="import .txt files"
+            disabled={busy}
           >
             <Upload size={14} />
           </button>
@@ -88,12 +100,13 @@ export default function SidebarHeader() {
         </div>
       </div>
       {creating && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-2 flex items-center gap-1">
           <input
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={submit}
+            disabled={busy}
             onKeyDown={(e) => {
               if (e.key === "Enter") submit();
               if (e.key === "Escape") {
@@ -102,8 +115,11 @@ export default function SidebarHeader() {
               }
             }}
             placeholder={creating === "file" ? "filename.txt" : "folder name"}
-            className="w-full px-2 py-1 bg-bg-elevated border border-accent outline-none text-xs"
+            className="flex-1 px-2 py-1 bg-bg-elevated border border-accent outline-none text-xs disabled:opacity-50"
           />
+          {busy && (
+            <Loader2 size={12} className="animate-spin text-text-muted" />
+          )}
         </div>
       )}
     </div>

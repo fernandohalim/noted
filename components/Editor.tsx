@@ -13,9 +13,8 @@ import { useConfirm } from "./ConfirmDialog";
 import { customTheme } from "@/lib/editor-theme";
 import { enqueueSave, getPendingSave, removeFromQueue } from "@/lib/sync-queue";
 import { useOnline } from "@/lib/use-online";
-import { indentWithTab } from "@codemirror/commands";
-import { EditorState } from "@codemirror/state";
-import { StateField } from "@codemirror/state";
+import { Compartment, EditorState, Prec, StateField } from "@codemirror/state";
+import { editorCommands } from "@/lib/editor-commands";
 
 const foldGutterTheme = EditorView.theme({
   ".cm-foldGutter": {
@@ -99,7 +98,7 @@ const selectionTooltip = StateField.define<readonly Tooltip[]>({
 });
 
 // builds the actual dom element for the tooltip
-function getTooltip(state: any): readonly Tooltip[] {
+function getTooltip(state: EditorState): readonly Tooltip[] {
   const ranges = state.selection.ranges;
   if (ranges.length === 0 || ranges[0].empty) return [];
 
@@ -208,6 +207,20 @@ export default function Editor({
   const updatedAtRef = useRef(file.updated_at);
   const savingRef = useRef(false);
   const editorViewRef = useRef<EditorView | null>(null);
+  const [editableCompartment] = useState(() => new Compartment());
+
+  const setEditable = useCallback(
+    (editable: boolean) => {
+      const view = editorViewRef.current;
+      if (!view) return;
+      view.dispatch({
+        effects: editableCompartment.reconfigure(
+          EditorView.editable.of(editable),
+        ),
+      });
+    },
+    [editableCompartment],
+  );
 
   const replaceEditorContent = useCallback(
     (newContent: string, newUpdatedAt: string) => {
@@ -245,6 +258,7 @@ export default function Editor({
       }
 
       savingRef.current = true;
+      setEditable(false);
       try {
         const captured = contentRef.current;
         setSaveState("saving");
@@ -285,9 +299,10 @@ export default function Editor({
         }
       } finally {
         savingRef.current = false;
+        setEditable(true);
       }
     },
-    [run, file.id, confirm, replaceEditorContent],
+    [setEditable, file.id, run, confirm, replaceEditorContent],
   );
 
   const handleRefresh = useCallback(async () => {
@@ -399,8 +414,9 @@ export default function Editor({
                   : 120,
               top: 40,
             })),
-            keymap.of([indentWithTab]),
+            Prec.highest(keymap.of(editorCommands)),
             EditorState.tabSize.of(2),
+            editableCompartment.of(EditorView.editable.of(true)),
             foldGutterTheme,
             selectionTooltip,
           ]}

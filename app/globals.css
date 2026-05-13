@@ -18,6 +18,9 @@ body {
   color: var(--color-text);
   font-family: var(--font-mono);
   font-feature-settings: "ss01", "cv01";
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 ::selection {

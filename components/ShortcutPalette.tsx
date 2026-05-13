@@ -11,6 +11,7 @@ const isMac =
   /Mac|iPod|iPhone|iPad/i.test(navigator.platform);
 const MOD = isMac ? "⌘" : "Ctrl";
 const SHIFT = isMac ? "⇧" : "Shift";
+const ALT = isMac ? "⌥" : "Alt";
 
 interface Shortcut {
   keys: string[];
@@ -41,6 +42,24 @@ const groups: { title: string; shortcuts: Shortcut[] }[] = [
       { keys: [MOD, "S"], desc: "save current file" },
       { keys: [MOD, "F"], desc: "find/replace within current file" },
       { keys: [MOD, "R"], desc: "reload file from server" },
+      { keys: ["Enter"], desc: "new line — keeps indent and continues lists" },
+      {
+        keys: ["Tab"],
+        desc: "skip to next tab stop (or indent selected lines)",
+      },
+      { keys: [SHIFT, "Tab"], desc: "outdent the current line or selection" },
+      { keys: [MOD, "D"], desc: "duplicate the current line" },
+      { keys: [ALT, "↑"], desc: "move line up" },
+      { keys: [ALT, "↓"], desc: "move line down" },
+      { keys: [MOD, "/"], desc: "toggle comment (inside code blocks)" },
+    ],
+  },
+  {
+    title: "formatting",
+    shortcuts: [
+      { keys: [MOD, "B"], desc: "wrap selection in bold (**...**)" },
+      { keys: [MOD, "I"], desc: "wrap selection in italic (*...*)" },
+      { keys: [MOD, "E"], desc: "wrap selection in inline code (`...`)" },
     ],
   },
 ];
