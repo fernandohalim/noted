@@ -230,12 +230,12 @@ export default function TreeNodeComponent({
               size={12}
               className={`shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
             />
-            <Folder size={14} className="shrink-0 text-text-muted" />
+            <Folder size={14} className="shrink-0 text-text" />
           </>
         ) : (
           <>
             <span className="w-3 shrink-0" />
-            <File size={14} className="shrink-0 text-text-muted" />
+            <File size={14} className="shrink-0 text-text-muted opacity-60" />
           </>
         )}
         {renaming ? (

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { EditorView } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { RotateCw, WifiOff } from "lucide-react";
@@ -13,6 +13,46 @@ import { useConfirm } from "./ConfirmDialog";
 import { customTheme } from "@/lib/editor-theme";
 import { enqueueSave, getPendingSave, removeFromQueue } from "@/lib/sync-queue";
 import { useOnline } from "@/lib/use-online";
+import { indentWithTab } from "@codemirror/commands";
+import { EditorState } from "@codemirror/state";
+
+const foldGutterTheme = EditorView.theme({
+  ".cm-foldGutter": {
+    width: "16px",
+  },
+  ".cm-foldGutter .cm-gutterElement": {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    opacity: 0,
+    transition: "opacity 0.1s ease",
+    color: "var(--text-muted)",
+    cursor: "pointer",
+  },
+  ".cm-gutters:hover .cm-foldGutter .cm-gutterElement": {
+    opacity: 1,
+  },
+  ".cm-foldMarker": {
+    fontSize: "13px",
+    lineHeight: "1",
+  },
+  ".cm-foldMarker:hover": {
+    color: "var(--text)",
+  },
+  ".cm-foldPlaceholder": {
+    backgroundColor: "var(--bg-elevated)",
+    border: "1px solid var(--border)",
+    color: "var(--text-muted)",
+    padding: "0 4px",
+    borderRadius: "4px",
+    margin: "0 4px",
+    cursor: "pointer",
+  },
+  ".cm-foldPlaceholder:hover": {
+    backgroundColor: "var(--bg-hover)",
+    color: "var(--text)",
+  },
+});
 
 type SaveState = "saved" | "unsaved" | "saving" | "error" | "queued";
 
@@ -215,10 +255,13 @@ export default function Editor({ file }: { file: Item }) {
             markdown({ codeLanguages: languages }),
             EditorView.lineWrapping,
             EditorView.scrollMargins.of(() => ({ bottom: 120, top: 40 })),
+            keymap.of([indentWithTab]),
+            EditorState.tabSize.of(2),
+            foldGutterTheme,
           ]}
           basicSetup={{
             lineNumbers: false,
-            foldGutter: false,
+            foldGutter: true,
             highlightActiveLine: false,
             highlightActiveLineGutter: false,
             highlightSelectionMatches: false,

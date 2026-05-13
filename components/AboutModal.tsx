@@ -62,6 +62,39 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <span className="text-text">source code</span>
               <span className="text-xs text-text-muted">github ↗</span>
             </a>
+
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              <a
+                href="https://fernando-halim.vercel.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center py-2 bg-bg-elevated border border-border hover:bg-bg-hover transition-colors text-text-muted hover:text-text"
+              >
+                <span className="text-xs">web</span>
+              </a>
+              <a
+                href="https://linkedin.com/in/fernando-halimm"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center py-2 bg-bg-elevated border border-border hover:bg-bg-hover transition-colors text-text-muted hover:text-text"
+              >
+                <span className="text-xs">in</span>
+              </a>
+              <a
+                href="https://github.com/fernandohalim"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center py-2 bg-bg-elevated border border-border hover:bg-bg-hover transition-colors text-text-muted hover:text-text"
+              >
+                <span className="text-xs">gh</span>
+              </a>
+              <a
+                href="mailto:fernandohalim26@gmail.com"
+                className="flex items-center justify-center py-2 bg-bg-elevated border border-border hover:bg-bg-hover transition-colors text-text-muted hover:text-text"
+              >
+                <span className="text-xs">mail</span>
+              </a>
+            </div>
           </div>
 
           <div className="mt-8 text-xs text-text-muted border-t border-border pt-4 w-full">
