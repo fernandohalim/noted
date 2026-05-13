@@ -14,7 +14,7 @@ export default function Sidebar({
   return (
     <aside
       className={`
-        w-64 border-r border-[var(--color-border)] bg-[var(--color-bg)] flex flex-col
+        w-64 border-r border-border bg-bg flex flex-col
         absolute md:static inset-y-0 left-0 z-20 h-full
         transform transition-transform duration-200
         ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
@@ -23,7 +23,7 @@ export default function Sidebar({
       <SidebarHeader />
       <div className="flex-1 overflow-y-auto py-1">
         {tree.length === 0 ? (
-          <div className="px-3 py-2 text-xs text-[var(--color-text-muted)]">
+          <div className="px-3 py-2 text-xs text-text-muted">
             empty. create your first file.
           </div>
         ) : (

@@ -175,10 +175,8 @@ export default function Editor({ file }: { file: Item }) {
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
-      <div className="h-9 border-b border-[var(--color-border)] flex items-center justify-between px-3 text-xs flex-shrink-0">
-        <span className="text-[var(--color-text-muted)] truncate">
-          {file.name}
-        </span>
+      <div className="h-9 border-b border-border flex items-center justify-between px-3 text-xs shrink-0">
+        <span className="text-text-muted truncate">{file.name}</span>
         <div className="flex items-center gap-3">
           {!isOnline && (
             <span
@@ -192,7 +190,7 @@ export default function Editor({ file }: { file: Item }) {
           <button
             onClick={handleRefresh}
             title="reload from server"
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            className="text-text-muted hover:text-text"
           >
             <RotateCw size={12} />
           </button>
@@ -244,17 +242,17 @@ function SaveIndicator({ state }: { state: SaveState }) {
   const mod = isMac ? "⌘" : "Ctrl";
   switch (state) {
     case "saved":
-      return <span className="text-[var(--color-text-muted)]">saved</span>;
+      return <span className="text-text-muted">saved</span>;
     case "unsaved":
       return (
-        <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
+        <span className="flex items-center gap-1.5 text-text-muted">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
           <span className="hidden sm:inline">unsaved · {mod}S</span>
           <span className="sm:hidden">unsaved</span>
         </span>
       );
     case "saving":
-      return <span className="text-[var(--color-text-muted)]">saving...</span>;
+      return <span className="text-text-muted">saving...</span>;
     case "queued":
       return (
         <span className="flex items-center gap-1.5 text-yellow-500">

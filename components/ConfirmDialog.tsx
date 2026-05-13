@@ -65,25 +65,25 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
           onClick={() => close(false)}
         >
           <div
-            className="bg-[var(--color-bg)] border border-[var(--color-border)] w-full max-w-sm"
+            className="bg-bg border border-border w-full max-w-sm"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               if (e.key === "Escape") close(false);
               if (e.key === "Enter") close(true);
             }}
           >
-            <div className="px-4 py-3 border-b border-[var(--color-border)]">
+            <div className="px-4 py-3 border-b border-border">
               <h3 className="text-sm">{state.opts.title}</h3>
             </div>
             {state.opts.message && (
-              <div className="px-4 py-3 text-sm text-[var(--color-text-muted)]">
+              <div className="px-4 py-3 text-sm text-text-muted">
                 {state.opts.message}
               </div>
             )}
-            <div className="px-4 py-3 border-t border-[var(--color-border)] flex justify-end gap-2">
+            <div className="px-4 py-3 border-t border-border flex justify-end gap-2">
               <button
                 onClick={() => close(false)}
-                className="px-3 py-1 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                className="px-3 py-1 text-sm text-text-muted hover:text-text"
               >
                 {state.opts.cancelText ?? "cancel"}
               </button>
@@ -93,7 +93,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 className={`px-3 py-1 text-sm transition-colors ${
                   state.opts.danger
                     ? "bg-red-500/90 hover:bg-red-500 text-white"
-                    : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[var(--color-bg)]"
+                    : "bg-accent hover:bg-accent-hover text-bg"
                 }`}
               >
                 {state.opts.confirmText ?? "confirm"}

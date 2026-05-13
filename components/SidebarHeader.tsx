@@ -46,16 +46,16 @@ export default function SidebarHeader() {
   };
 
   return (
-    <div className="border-b border-[var(--color-border)]">
+    <div className="border-b border-border">
       <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-xs text-[var(--color-text-muted)]">files</span>
+        <span className="text-xs text-text-muted">files</span>
         <div className="flex gap-1">
           <button
             onClick={() => {
               setCreating("file");
               setName("");
             }}
-            className="p-1 hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            className="p-1 hover:bg-bg-hover text-text-muted hover:text-text"
             title="new file"
           >
             <FilePlus size={14} />
@@ -65,14 +65,14 @@ export default function SidebarHeader() {
               setCreating("folder");
               setName("");
             }}
-            className="p-1 hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            className="p-1 hover:bg-bg-hover text-text-muted hover:text-text"
             title="new folder"
           >
             <FolderPlus size={14} />
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1 hover:bg-[var(--color-bg-hover)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            className="p-1 hover:bg-bg-hover text-text-muted hover:text-text"
             title="import .txt files"
           >
             <Upload size={14} />
@@ -102,7 +102,7 @@ export default function SidebarHeader() {
               }
             }}
             placeholder={creating === "file" ? "filename.txt" : "folder name"}
-            className="w-full px-2 py-1 bg-[var(--color-bg-elevated)] border border-[var(--color-accent)] outline-none text-xs"
+            className="w-full px-2 py-1 bg-bg-elevated border border-accent outline-none text-xs"
           />
         </div>
       )}

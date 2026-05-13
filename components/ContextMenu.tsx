@@ -45,12 +45,12 @@ export default function ContextMenu({
   return (
     <div
       ref={ref}
-      className="fixed z-50 min-w-[160px] bg-[var(--color-bg-elevated)] border border-[var(--color-border)] py-1 shadow-lg"
+      className="fixed z-50 min-w-40 bg-bg-elevated border border-border py-1 shadow-lg"
       style={{ left: adjustedX, top: adjustedY }}
     >
       {items.map((item, i) =>
         item.type === "divider" ? (
-          <div key={i} className="h-px bg-[var(--color-border)] my-1" />
+          <div key={i} className="h-px bg-border my-1" />
         ) : (
           <button
             key={i}
@@ -58,7 +58,7 @@ export default function ContextMenu({
               item.onClick!();
               onClose();
             }}
-            className={`block w-full text-left px-3 py-1.5 text-sm hover:bg-[var(--color-bg-hover)] ${
+            className={`block w-full text-left px-3 py-1.5 text-sm hover:bg-bg-hover ${
               item.danger ? "text-red-400" : ""
             }`}
           >

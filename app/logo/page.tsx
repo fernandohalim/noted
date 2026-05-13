@@ -51,7 +51,7 @@ export default function LogoExporter() {
   ];
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[var(--color-bg)] p-8 font-mono overflow-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-bg p-8 font-mono overflow-auto">
       {/* export buttons */}
       <div className="flex flex-wrap gap-3 mb-12 justify-center max-w-lg">
         {sizes.map((s) => (
@@ -59,7 +59,7 @@ export default function LogoExporter() {
             key={s.width}
             onClick={() => handleExport(s.width, s.name)}
             disabled={isExporting}
-            className="px-4 py-2 bg-[var(--color-bg-elevated)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] disabled:opacity-50 transition-colors rounded text-sm cursor-pointer"
+            className="px-4 py-2 bg-bg-elevated text-text border border-border hover:bg-bg-hover disabled:opacity-50 transition-colors rounded text-sm cursor-pointer"
           >
             export {s.width}x{s.width}
           </button>
@@ -77,7 +77,7 @@ export default function LogoExporter() {
           // dynamically calculate outer border radius (0.225 mimics standard squircle)
           borderRadius: renderSize * 0.225,
         }}
-        className="bg-[var(--color-bg)] flex flex-col items-center justify-center font-mono border border-[var(--color-border)] relative overflow-hidden shrink-0"
+        className="bg-bg flex flex-col items-center justify-center font-mono border border-border relative overflow-hidden shrink-0"
       >
         <div
           style={{
@@ -89,14 +89,14 @@ export default function LogoExporter() {
             fontSize: renderSize * 0.34, // mimics text-[11rem]
             paddingBottom: renderSize * 0.03, // mimics pb-4
           }}
-          className="flex items-center justify-center border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-accent)] font-bold"
+          className="flex items-center justify-center border-border bg-bg text-accent font-bold"
         >
           n.
         </div>
       </div>
 
       {isExporting && (
-        <p className="mt-8 text-xs text-[var(--color-text-muted)] animate-pulse">
+        <p className="mt-8 text-xs text-text-muted animate-pulse">
           snapping {renderSize}x{renderSize}...
         </p>
       )}

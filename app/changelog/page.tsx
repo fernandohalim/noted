@@ -8,20 +8,18 @@ export default function Changelog() {
   const router = useRouter();
 
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center p-6 bg-[var(--color-bg)] font-mono selection:bg-[var(--color-accent)] selection:text-[var(--color-bg)] pb-32">
+    <main className="flex min-h-dvh flex-col items-center p-6 bg-bg font-mono selection:bg-accent selection:text-bg pb-32">
       <div className="w-full max-w-2xl relative">
-        <header className="sticky top-0 py-6 bg-[var(--color-bg)]/90 backdrop-blur z-20 flex items-center justify-between border-b border-[var(--color-border)] mb-8">
+        <header className="sticky top-0 py-6 bg-bg/90 backdrop-blur z-20 flex items-center justify-between border-b border-border mb-8">
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors cursor-pointer"
+            className="flex items-center gap-2 text-sm text-text-muted hover:text-text transition-colors cursor-pointer"
           >
             <span>←</span> back
           </button>
           <div className="text-right">
-            <h1 className="text-lg font-bold text-[var(--color-text)]">
-              changelog
-            </h1>
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <h1 className="text-lg font-bold text-text">changelog</h1>
+            <p className="text-xs text-text-muted">
               current: v{packageJson.version}
             </p>
           </div>
@@ -31,31 +29,27 @@ export default function Changelog() {
           {releases.map((release) => (
             <div
               key={release.version}
-              className="border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-6"
+              className="border border-border bg-bg-elevated p-6"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-[var(--color-border)] pb-4 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-border pb-4 gap-2">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-bold text-[var(--color-text)]">
+                  <h2 className="text-lg font-bold text-text">
                     {release.title}
                   </h2>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-accent)]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-bg border border-border text-accent">
                     v{release.version}
                   </span>
                 </div>
-                <time className="text-xs text-[var(--color-text-muted)]">
-                  {release.date}
-                </time>
+                <time className="text-xs text-text-muted">{release.date}</time>
               </div>
 
               <ul className="space-y-2">
                 {release.features.map((feature, idx) => (
                   <li
                     key={idx}
-                    className="text-sm text-[var(--color-text)] flex items-start gap-3"
+                    className="text-sm text-text flex items-start gap-3"
                   >
-                    <span className="text-[var(--color-text-muted)] select-none">
-                      -
-                    </span>
+                    <span className="text-text-muted select-none">-</span>
                     <span className="leading-relaxed">{feature}</span>
                   </li>
                 ))}
@@ -64,7 +58,7 @@ export default function Changelog() {
           ))}
         </div>
 
-        <div className="mt-12 text-center text-xs text-[var(--color-text-muted)]">
+        <div className="mt-12 text-center text-xs text-text-muted">
           more notes taking shape...
         </div>
       </div>

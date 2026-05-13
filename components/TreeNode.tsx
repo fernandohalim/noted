@@ -217,14 +217,10 @@ export default function TreeNodeComponent({
         onDrop={handleDrop}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
-        className={`group flex items-center gap-1 px-2 py-1 cursor-pointer text-sm hover:bg-[var(--color-bg-hover)] ${
-          isSelected
-            ? "bg-[var(--color-bg-elevated)] text-[var(--color-accent)]"
-            : ""
+        className={`group flex items-center gap-1 px-2 py-1 cursor-pointer text-sm hover:bg-bg-hover ${
+          isSelected ? "bg-bg-elevated text-accent" : ""
         } ${
-          isDragOver
-            ? "outline outline-1 outline-[var(--color-accent)] -outline-offset-1"
-            : ""
+          isDragOver ? "outline outline-accent -outline-offset-1" : ""
         } ${isDragging ? "opacity-40" : ""}`}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
@@ -232,20 +228,14 @@ export default function TreeNodeComponent({
           <>
             <ChevronRight
               size={12}
-              className={`flex-shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+              className={`shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
             />
-            <Folder
-              size={14}
-              className="flex-shrink-0 text-[var(--color-text-muted)]"
-            />
+            <Folder size={14} className="shrink-0 text-text-muted" />
           </>
         ) : (
           <>
-            <span className="w-3 flex-shrink-0" />
-            <File
-              size={14}
-              className="flex-shrink-0 text-[var(--color-text-muted)]"
-            />
+            <span className="w-3 shrink-0" />
+            <File size={14} className="shrink-0 text-text-muted" />
           </>
         )}
         {renaming ? (
@@ -262,7 +252,7 @@ export default function TreeNodeComponent({
               }
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-[var(--color-bg-elevated)] border border-[var(--color-accent)] outline-none px-1 text-sm min-w-0"
+            className="flex-1 bg-bg-elevated border border-accent outline-none px-1 text-sm min-w-0"
           />
         ) : (
           <span className="truncate">{node.name}</span>
@@ -275,7 +265,7 @@ export default function TreeNodeComponent({
               const rect = e.currentTarget.getBoundingClientRect();
               setMenu({ x: rect.left - 140, y: rect.bottom + 4 });
             }}
-            className="ml-auto p-0.5 hover:bg-[var(--color-bg-elevated)] flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            className="ml-auto p-0.5 hover:bg-bg-elevated shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
             aria-label="more actions"
           >
             <MoreHorizontal size={12} />
@@ -301,7 +291,7 @@ export default function TreeNodeComponent({
               }
             }}
             placeholder={creating === "file" ? "filename.txt" : "folder name"}
-            className="w-full px-1 py-0.5 bg-[var(--color-bg-elevated)] border border-[var(--color-accent)] outline-none text-sm"
+            className="w-full px-1 py-0.5 bg-bg-elevated border border-accent outline-none text-sm"
           />
         </div>
       )}

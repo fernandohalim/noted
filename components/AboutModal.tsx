@@ -15,16 +15,14 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
       <div className="fixed inset-0" onClick={onClose}></div>
 
       {/* modal body */}
-      <div className="bg-[var(--color-bg)] border border-[var(--color-border)] w-full max-w-sm shadow-2xl flex flex-col relative z-10 font-mono overflow-hidden">
+      <div className="bg-bg border border-border w-full max-w-sm shadow-2xl flex flex-col relative z-10 font-mono overflow-hidden">
         {/* header */}
-        <div className="flex justify-between items-center px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]">
-          <span className="text-[var(--color-text)] text-sm font-bold">
-            about noted.
-          </span>
+        <div className="flex justify-between items-center px-4 py-3 border-b border-border bg-bg-elevated">
+          <span className="text-text text-sm font-bold">about noted.</span>
           <button
             type="button"
             onClick={onClose}
-            className="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors text-lg cursor-pointer flex items-center justify-center w-6 h-6 leading-none"
+            className="text-text-muted hover:text-text transition-colors text-lg cursor-pointer flex items-center justify-center w-6 h-6 leading-none"
           >
             ×
           </button>
@@ -32,16 +30,12 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
 
         <div className="p-6 flex flex-col items-center text-center">
           {/* icon */}
-          <div className="w-20 h-20 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] flex items-center justify-center mb-5 shrink-0">
-            <span className="text-4xl font-bold text-[var(--color-accent)]">
-              n.
-            </span>
+          <div className="w-20 h-20 rounded-xl border border-border bg-bg flex items-center justify-center mb-5 shrink-0">
+            <span className="text-4xl font-bold text-accent">n.</span>
           </div>
 
-          <h2 className="text-xl font-bold text-[var(--color-text)] mb-1">
-            noted.
-          </h2>
-          <p className="text-sm text-[var(--color-text-muted)] mb-6">
+          <h2 className="text-xl font-bold text-text mb-1">noted.</h2>
+          <p className="text-sm text-text-muted mb-6">
             minimalist note-taking.
           </p>
 
@@ -51,10 +45,10 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 onClose();
                 router.push("/changelog");
               }}
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer text-sm"
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-bg-elevated border border-border hover:bg-bg-hover transition-colors cursor-pointer text-sm"
             >
-              <span className="text-[var(--color-text)]">changelog</span>
-              <span className="text-xs text-[var(--color-text-muted)]">
+              <span className="text-text">changelog</span>
+              <span className="text-xs text-text-muted">
                 v{packageJson.version} →
               </span>
             </button>
@@ -63,16 +57,14 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
               href="https://github.com/fernandohalim/noted"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-between px-4 py-2.5 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors cursor-pointer text-sm"
+              className="w-full flex items-center justify-between px-4 py-2.5 bg-bg-elevated border border-border hover:bg-bg-hover transition-colors cursor-pointer text-sm"
             >
-              <span className="text-[var(--color-text)]">source code</span>
-              <span className="text-xs text-[var(--color-text-muted)]">
-                github ↗
-              </span>
+              <span className="text-text">source code</span>
+              <span className="text-xs text-text-muted">github ↗</span>
             </a>
           </div>
 
-          <div className="mt-8 text-xs text-[var(--color-text-muted)] border-t border-[var(--color-border)] pt-4 w-full">
+          <div className="mt-8 text-xs text-text-muted border-t border-border pt-4 w-full">
             crafted by Fernando Halim
           </div>
         </div>

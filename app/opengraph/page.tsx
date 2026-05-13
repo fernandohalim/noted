@@ -27,11 +27,11 @@ export default function OpenGraphExporter() {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-[var(--color-bg)] p-8 font-mono overflow-auto">
+    <div className="min-h-dvh flex flex-col items-center justify-center bg-bg p-8 font-mono overflow-auto">
       {" "}
       <button
         onClick={exportImage}
-        className="mb-8 px-4 py-2 bg-[var(--color-bg-elevated)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-bg-hover)] transition-colors rounded text-sm cursor-pointer"
+        className="mb-8 px-4 py-2 bg-bg-elevated text-text border border-border hover:bg-bg-hover transition-colors rounded text-sm cursor-pointer"
       >
         export opengraph-image.png
       </button>
@@ -39,17 +39,13 @@ export default function OpenGraphExporter() {
       <div
         ref={ogRef}
         style={{ width: 1200, height: 630, minWidth: 1200, minHeight: 630 }}
-        className="bg-[var(--color-bg)] flex flex-col items-center justify-center font-mono border border-[var(--color-border)] relative overflow-hidden shrink-0"
+        className="bg-bg flex flex-col items-center justify-center font-mono border border-border relative overflow-hidden shrink-0"
       >
-        <div className="w-40 h-40 flex items-center justify-center rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-accent)] text-7xl font-bold mb-10">
+        <div className="w-40 h-40 flex items-center justify-center rounded-2xl border-2 border-border bg-bg text-accent text-7xl font-bold mb-10">
           n.
         </div>
-        <h1 className="text-6xl font-bold text-[var(--color-text)] mb-4">
-          noted.
-        </h1>
-        <p className="text-3xl text-[var(--color-text-muted)]">
-          minimalist note-taking.
-        </p>
+        <h1 className="text-6xl font-bold text-text mb-4">noted.</h1>
+        <p className="text-3xl text-text-muted">minimalist note-taking.</p>
       </div>
     </div>
   );
