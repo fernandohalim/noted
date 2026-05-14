@@ -32,9 +32,7 @@ const smartEnter = (view: EditorView): boolean => {
       return true;
     }
 
-    const nextMarker = orderedNum
-      ? `${parseInt(orderedNum, 10) + 1}.`
-      : marker;
+    const nextMarker = orderedNum ? `${parseInt(orderedNum, 10) + 1}.` : marker;
     const insertion = `\n${indent}${nextMarker} `;
     view.dispatch({
       changes: { from: pos, insert: insertion },
@@ -67,40 +65,47 @@ const smartTab = (view: EditorView): boolean => {
     return indentMore(view);
   }
 
-  // Single line / cursor — insert spaces to next tab stop
+  // Single-line non-empty selection — indent that line, keep selection
+  if (!range.empty) {
+    return indentMore(view);
+  }
+
+  // Empty selection (cursor) — insert spaces to next tab stop
   const tabSize = state.tabSize;
   const col = range.from - startLine.from;
   const spacesNeeded = tabSize - (col % tabSize);
   const spaces = " ".repeat(spacesNeeded);
 
   view.dispatch({
-    changes: { from: range.from, to: range.to, insert: spaces },
+    changes: { from: range.from, insert: spaces },
     selection: { anchor: range.from + spaces.length },
   });
   return true;
 };
 
-const wrap = (chars: string) => (view: EditorView): boolean => {
-  const range = view.state.selection.main;
-  if (range.empty) {
+const wrap =
+  (chars: string) =>
+  (view: EditorView): boolean => {
+    const range = view.state.selection.main;
+    if (range.empty) {
+      view.dispatch({
+        changes: { from: range.from, insert: chars + chars },
+        selection: { anchor: range.from + chars.length },
+      });
+      return true;
+    }
     view.dispatch({
-      changes: { from: range.from, insert: chars + chars },
-      selection: { anchor: range.from + chars.length },
+      changes: [
+        { from: range.from, insert: chars },
+        { from: range.to, insert: chars },
+      ],
+      selection: {
+        anchor: range.from + chars.length,
+        head: range.to + chars.length,
+      },
     });
     return true;
-  }
-  view.dispatch({
-    changes: [
-      { from: range.from, insert: chars },
-      { from: range.to, insert: chars },
-    ],
-    selection: {
-      anchor: range.from + chars.length,
-      head: range.to + chars.length,
-    },
-  });
-  return true;
-};
+  };
 
 export const editorCommands: KeyBinding[] = [
   { key: "Enter", run: smartEnter },

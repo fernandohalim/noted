@@ -6,10 +6,12 @@ import { FilePlus, FolderPlus, Upload } from "lucide-react";
 import { createItem } from "@/app/actions";
 import { usePending } from "./PendingProvider";
 import { Loader2 } from "lucide-react";
+import { useTree } from "./TreeProvider";
 
 export default function SidebarHeader() {
   const router = useRouter();
   const { run } = usePending();
+  const { addNode } = useTree();
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [name, setName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,8 +29,11 @@ export default function SidebarHeader() {
     setBusy(true);
     try {
       const res = await run(() => createItem(null, name, creating));
-      if (res.data && creating === "file") {
-        router.push(`/?file=${res.data.id}`);
+      if (res.data) {
+        addNode(res.data);
+        if (creating === "file") {
+          router.push(`/?file=${res.data.id}`);
+        }
       }
     } finally {
       inFlight.current = false;
@@ -46,7 +51,10 @@ export default function SidebarHeader() {
       for (const file of Array.from(files)) {
         if (!file.name.toLowerCase().endsWith(".txt")) continue;
         const content = await file.text();
-        await run(() => createItem(null, file.name, "file", content));
+        const res = await run(() =>
+          createItem(null, file.name, "file", content),
+        );
+        if (res.data) addNode(res.data);
       }
     } finally {
       setBusy(false);

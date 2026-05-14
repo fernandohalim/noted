@@ -99,6 +99,15 @@ const selectionTooltip = StateField.define<readonly Tooltip[]>({
 
 // builds the actual dom element for the tooltip
 function getTooltip(state: EditorState): readonly Tooltip[] {
+  // Disable the custom selection toolbar on touch devices —
+  // it conflicts with the native selection menu.
+  if (
+    typeof window !== "undefined" &&
+    window.matchMedia("(pointer: coarse)").matches
+  ) {
+    return [];
+  }
+
   const ranges = state.selection.ranges;
   if (ranges.length === 0 || ranges[0].empty) return [];
 
@@ -408,10 +417,7 @@ export default function Editor({
             markdown({ codeLanguages: languages }),
             EditorView.lineWrapping,
             EditorView.scrollMargins.of(() => ({
-              bottom:
-                typeof window !== "undefined" && window.innerWidth < 640
-                  ? window.innerHeight / 2
-                  : 120,
+              bottom: 80,
               top: 40,
             })),
             Prec.highest(keymap.of(editorCommands)),

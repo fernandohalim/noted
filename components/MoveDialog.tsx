@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { buildTree } from "@/lib/tree";
 import type { ItemMeta, TreeNode } from "@/types";
 import { usePending } from "./PendingProvider";
+import { useTree } from "./TreeProvider";
 
 export default function MoveDialog({
   itemId,
@@ -23,6 +24,7 @@ export default function MoveDialog({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const { run } = usePending();
+  const { moveNode } = useTree();
   const inFlight = useRef(false);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export default function MoveDialog({
     }
     const res = await run(() => moveItem(itemId, targetId));
     if (res.error) alert(res.error);
+    else moveNode(itemId, targetId);
     onClose();
   };
 

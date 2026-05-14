@@ -19,6 +19,7 @@ import { usePending } from "./PendingProvider";
 import { downloadTextFile, downloadFolderAsZip } from "@/lib/export";
 import { usePendingItems } from "./PendingItemsProvider";
 import { Loader2 } from "lucide-react";
+import { useTree } from "./TreeProvider";
 
 interface Props {
   node: TreeNode;
@@ -52,6 +53,7 @@ export default function TreeNodeComponent({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isPending, withPending } = usePendingItems();
+  const { addNode, renameNode, removeNode, moveNode } = useTree();
   const [createBusy, setCreateBusy] = useState(false);
   const busy = isPending(node.id);
 
@@ -67,13 +69,16 @@ export default function TreeNodeComponent({
 
   const submitRename = async () => {
     if (inFlight.current) return;
-    if (name.trim() && name !== node.name) {
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== node.name) {
       const res = await withPending(node.id, () =>
-        run(() => renameItem(node.id, name)),
+        run(() => renameItem(node.id, trimmed)),
       );
       if (res.error) {
         alert(res.error);
         setName(node.name);
+      } else {
+        renameNode(node.id, trimmed);
       }
     } else {
       setName(node.name);
@@ -96,8 +101,12 @@ export default function TreeNodeComponent({
     const res = await withPending(node.id, () =>
       run(() => deleteItem(node.id)),
     );
-    if (res.error) alert(res.error);
-    else if (isSelected) router.push("/");
+    if (res.error) {
+      alert(res.error);
+    } else {
+      removeNode(node.id);
+      if (isSelected) router.push("/");
+    }
   };
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -129,6 +138,7 @@ export default function TreeNodeComponent({
       run(() => moveItem(draggedId, node.id)),
     );
     if (res.error) alert(res.error);
+    else moveNode(draggedId, node.id);
   };
 
   const handleExport = async () => {
@@ -151,7 +161,10 @@ export default function TreeNodeComponent({
     for (const file of Array.from(files)) {
       if (!file.name.toLowerCase().endsWith(".txt")) continue;
       const content = await file.text();
-      await run(() => createItem(node.id, file.name, "file", content));
+      const res = await run(() =>
+        createItem(node.id, file.name, "file", content),
+      );
+      if (res.data) addNode(res.data);
     }
     if (!expandedSet.has(node.id)) onToggle(node.id);
     e.target.value = "";
@@ -169,9 +182,10 @@ export default function TreeNodeComponent({
       const res = await run(() => createItem(node.id, newName, creating));
       if (res.error) {
         alert(res.error);
-      } else {
+      } else if (res.data) {
+        addNode(res.data);
         if (!expandedSet.has(node.id)) onToggle(node.id);
-        if (res.data && creating === "file") {
+        if (creating === "file") {
           router.push(`/?file=${res.data.id}`);
         }
       }

@@ -5,6 +5,7 @@ import type { TreeNode, Item } from "@/types";
 import TitleBar from "./TitleBar";
 import Sidebar from "./Sidebar";
 import Workstation from "./Workstation";
+import { TreeProvider, useTree } from "./TreeProvider";
 
 export default function AppShell({
   email,
@@ -17,10 +18,30 @@ export default function AppShell({
   selectedId?: string;
   selectedFile: Item | null;
 }) {
+  return (
+    <TreeProvider initialTree={tree}>
+      <AppShellInner
+        email={email}
+        selectedId={selectedId}
+        selectedFile={selectedFile}
+      />
+    </TreeProvider>
+  );
+}
+
+function AppShellInner({
+  email,
+  selectedId,
+  selectedFile,
+}: {
+  email: string;
+  selectedId?: string;
+  selectedFile: Item | null;
+}) {
+  const { tree } = useTree();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
 
-  // reset sidebar state during render when selectedid changes
   if (selectedId !== prevSelectedId) {
     setPrevSelectedId(selectedId);
     setSidebarOpen(false);

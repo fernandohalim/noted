@@ -1,17 +1,29 @@
-export const releases = [  
+export const releases = [
   {
-  version: "1.1",
-  date: "may 2026",
-  title: "editor power-ups & ux polish",
-  badge: "feature",
-  features: [
-    "auto-indent on enter — new lines inherit the previous line's indentation",
-    "tab now jumps to the next tab stop when typing; still indents the whole block when multiple lines are selected",
-    "new integrated shortcut, click (?) icon",
-    "inline loading indicators on rename, delete, move, and create — affected items dim and show a spinner",
-    "fixed mobile bug where the title bar could scroll off-screen after opening the keyboard on a long note",
-  ],
-},
+    version: "1.1.1",
+    date: "may 2026",
+    title: "performance & mobile polish",
+    badge: "patch",
+    features: [
+      "removed the sluggish refresh after sidebar operations — rename, move, delete, and create now finish as soon as the server responds",
+      "fixed a tab key bug where selecting text within a single line and pressing tab would replace the selection; it now indents the line instead",
+      "disabled the custom formatting toolbar on touch devices — it was overlapping the native selection menu",
+      "tuned mobile scroll behavior so tapping and selecting text no longer triggers unexpected page jumps",
+    ],
+  },
+  {
+    version: "1.1",
+    date: "may 2026",
+    title: "editor power-ups & ux polish",
+    badge: "feature",
+    features: [
+      "auto-indent on enter — new lines inherit the previous line's indentation",
+      "tab now jumps to the next tab stop when typing; still indents the whole block when multiple lines are selected",
+      "new integrated shortcut, click (?) icon",
+      "inline loading indicators on rename, delete, move, and create — affected items dim and show a spinner",
+      "fixed mobile bug where the title bar could scroll off-screen after opening the keyboard on a long note",
+    ],
+  },
   {
     version: "1.0.3",
     date: "may 2026",
@@ -24,7 +36,7 @@ export const releases = [
   },
   {
     version: "1.0.2",
-    date: "may 2026", 
+    date: "may 2026",
     title: "editor enhancements & ui polish",
     badge: "patch",
     features: [
@@ -36,17 +48,14 @@ export const releases = [
   },
   {
     version: "1.0.1",
-    date: "may 2026", 
+    date: "may 2026",
     title: "minor bug fixing",
     badge: "patch",
-    features: [
-      "fix minor bugs",
-      "fix manifest.json",
-    ],
+    features: ["fix minor bugs", "fix manifest.json"],
   },
   {
     version: "1.0",
-    date: "may 2026", 
+    date: "may 2026",
     title: "initial release",
     badge: "launch",
     features: [

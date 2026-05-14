@@ -6,6 +6,7 @@ import TreeNodeComponent from "./TreeNode";
 import { moveItem } from "@/app/actions";
 import { usePending } from "./PendingProvider";
 import { usePendingItems } from "./PendingItemsProvider";
+import { useTree } from "./TreeProvider";
 
 export default function FileTree({
   nodes,
@@ -35,6 +36,7 @@ export default function FileTree({
   };
 
   const { withPending } = usePendingItems();
+  const { moveNode } = useTree();
 
   const handleRootDrop = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -45,6 +47,7 @@ export default function FileTree({
       run(() => moveItem(draggedId, null)),
     );
     if (res.error) alert(res.error);
+    else moveNode(draggedId, null);
   };
 
   return (
