@@ -1,5 +1,14 @@
 export const releases = [
   {
+    version: "1.2.1",
+    date: "may 2026",
+    title: "instant note switching",
+    badge: "patch",
+    features: [
+      "fixed note switching triggering a server round-trip on every click — opening a note is now fully client-side and instant, matching the offline experience",
+    ],
+  },
+  {
     version: "1.2",
     date: "may 2026",
     title: "local-first storage",

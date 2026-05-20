@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type { ItemMeta, TreeNode } from "@/types";
 import { buildTree } from "@/lib/tree";
 import { localGetAllItems } from "@/lib/local-store";
@@ -41,8 +41,6 @@ export function TreeProvider({
 }) {
   const [items, setItems] = useState<ItemMeta[]>(initialItems);
 
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // derive the selected id directly from the url query parameters
@@ -59,21 +57,22 @@ export function TreeProvider({
     return () => window.removeEventListener("noted:items-updated", reload);
   }, []);
 
-  const openFile = useCallback(
-    (id: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("file", id);
-      router.push(`${pathname}?${params.toString()}`);
-    },
-    [router, pathname, searchParams],
-  );
+  const openFile = useCallback((id: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("file", id);
+    window.history.pushState(null, "", `?${params.toString()}`);
+  }, []);
 
   const closeFile = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.delete("file");
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
-  }, [router, pathname, searchParams]);
+    window.history.pushState(
+      null,
+      "",
+      query ? `?${query}` : window.location.pathname,
+    );
+  }, []);
 
   const addNode = useCallback((item: ItemMeta) => {
     setItems((prev) => [...prev.filter((i) => i.id !== item.id), item]);
