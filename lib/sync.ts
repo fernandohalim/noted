@@ -7,6 +7,8 @@ import {
   setConflict,
   setSyncMeta,
   enqueueMutation,
+  localPutBase,
+  localPutBases,
 } from "./local-store";
 import type { Item, PendingMutation, SyncMeta } from "@/types";
 import {
@@ -54,6 +56,17 @@ export async function pullDelta(userId: string): Promise<{
 
   // server returns items including deleted_at and content; we trust it as authoritative
   await localPutItems(items);
+
+  // snapshot server-confirmed file content as the merge base — but skip files
+  // with a pending local edit, so their base stays the true common ancestor
+  const pendingItemIds = new Set((await listMutations()).map((m) => m.itemId));
+  await localPutBases(
+    items
+      .filter(
+        (i) => i.type === "file" && !i.deleted_at && !pendingItemIds.has(i.id),
+      )
+      .map((i) => ({ id: i.id, content: i.content, updatedAt: i.updated_at })),
+  );
 
   const newest = items.reduce<string>(
     (acc, i) => (i.updated_at > acc ? i.updated_at : acc),
@@ -132,7 +145,15 @@ async function applyMutation(
         throw new Error(res.error);
       }
       if ("data" in res && res.data) {
-        await localPutItems([{ ...(res.data as Item), content }]);
+        const created = res.data as Item;
+        await localPutItems([{ ...created, content }]);
+        if (itemType === "file") {
+          await localPutBase({
+            id: m.itemId,
+            content,
+            updatedAt: created.updated_at,
+          });
+        }
       }
       return "ok";
     }
@@ -175,6 +196,11 @@ async function applyMutation(
         return "conflict";
       }
       if ("error" in res && res.error) throw new Error(res.error);
+      // queued edit is now server-confirmed — advance the merge base
+      const confirmedAt = (res as { updatedAt?: string }).updatedAt;
+      if (confirmedAt) {
+        await localPutBase({ id: m.itemId, content, updatedAt: confirmedAt });
+      }
       return "ok";
     }
   }

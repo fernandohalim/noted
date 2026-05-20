@@ -1,5 +1,6 @@
 import { clearLocalData, getDB } from "./idb";
 import type {
+  BaseSnapshot,
   ConflictRecord,
   Item,
   ItemMeta,
@@ -83,6 +84,26 @@ export async function localMarkDeleted(
 export async function localClearAll(): Promise<void> {
   itemCache.clear();
   await clearLocalData();
+}
+
+// ---------- merge bases ----------
+
+export async function localGetBase(id: string): Promise<BaseSnapshot | null> {
+  const db = await getDB();
+  return (await db.get("bases", id)) ?? null;
+}
+
+export async function localPutBase(snapshot: BaseSnapshot): Promise<void> {
+  const db = await getDB();
+  await db.put("bases", snapshot);
+}
+
+export async function localPutBases(snapshots: BaseSnapshot[]): Promise<void> {
+  if (snapshots.length === 0) return;
+  const db = await getDB();
+  const tx = db.transaction("bases", "readwrite");
+  await Promise.all(snapshots.map((s) => tx.store.put(s)));
+  await tx.done;
 }
 
 // ---------- mutation queue ----------

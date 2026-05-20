@@ -1,5 +1,16 @@
 export const releases = [
   {
+    version: "1.3",
+    date: "may 2026",
+    title: "three-way merge for conflicts",
+    badge: "feature",
+    features: [
+      "editing the same note on two devices no longer forces an all-or-nothing choice — non-overlapping changes now merge automatically",
+      "genuine overlaps open a side-by-side merge view: resolve each conflict by editing directly or pulling in the other version, then save",
+      "the last synced version of every note is kept on-device as a merge base, giving conflict resolution a true common ancestor",
+    ],
+  },
+  {
     version: "1.2.2",
     date: "may 2026",
     title: "mobile fix",

@@ -143,3 +143,39 @@ body {
     padding-bottom: var(--cm-keyboard-pad, 50vh);
   }
 }
+
+/* 3-way merge dialog */
+.cm-mergeView,
+.cm-mergeViewEditors {
+  height: 100%;
+}
+.cm-merge-a,
+.cm-merge-b {
+  height: 100%;
+}
+.cm-mergeView .cm-content {
+  padding-bottom: 0;
+}
+.cm-merge-a .cm-changedLine,
+.cm-merge-b .cm-changedLine {
+  background: rgba(217, 119, 87, 0.1);
+}
+.cm-changedText {
+  background: rgba(217, 119, 87, 0.28);
+}
+.cm-merge-revert {
+  background: var(--color-bg-elevated);
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+.cm-merge-revert button {
+  color: var(--color-text-muted);
+}
+.cm-merge-revert button:hover {
+  color: var(--color-accent);
+}
+.cm-collapsedLines {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}

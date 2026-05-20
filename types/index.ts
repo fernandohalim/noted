@@ -54,3 +54,9 @@ export interface ConflictRecord {
   serverUpdatedAt: string;
   detectedAt: number;
 }
+
+export interface BaseSnapshot {
+  id: string; // item id
+  content: string; // last server-confirmed content
+  updatedAt: string; // server updated_at this content corresponds to
+}

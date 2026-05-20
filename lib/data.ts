@@ -15,6 +15,7 @@ import {
   localGetItem,
   localMarkDeleted,
   localPutItem,
+  localPutBase,
 } from "./local-store";
 import { queueMutation } from "./sync";
 import type { Item, ItemMeta, ItemType } from "@/types";
@@ -144,8 +145,12 @@ export async function createItem(
     await queue();
     return { data: stripContent(optimistic) };
   }
+
   const serverItem = { ...(res.data as Item), content };
   await localPutItem(serverItem);
+  if (type === "file") {
+    await localPutBase({ id, content, updatedAt: serverItem.updated_at });
+  }
   return { data: stripContent(serverItem) };
 }
 
@@ -288,6 +293,8 @@ export async function updateFileContent(
   const updatedAt = (res as { updatedAt?: string }).updatedAt;
   if (existing && updatedAt) {
     await localPutItem({ ...existing, content, updated_at: updatedAt });
+    // our content is now server-confirmed — it becomes the new base
+    await localPutBase({ id, content, updatedAt });
   }
   return { ok: true, updatedAt };
 }
@@ -310,6 +317,9 @@ export async function refreshFileContent(
       content: r.content,
       updated_at: r.updatedAt,
     });
+    if (existing.type === "file") {
+      await localPutBase({ id, content: r.content, updatedAt: r.updatedAt });
+    }
   }
   return { content: r.content, updatedAt: r.updatedAt };
 }

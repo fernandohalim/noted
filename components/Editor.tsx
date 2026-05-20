@@ -5,7 +5,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap, showTooltip, Tooltip } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
-import { RotateCw, WifiOff } from "lucide-react";
+import { RotateCw, WifiOff, GitMerge } from "lucide-react";
 import type { Item, TreeNode } from "@/types";
 import { usePending } from "./PendingProvider";
 import { useConfirm } from "./ConfirmDialog";
@@ -19,7 +19,14 @@ import {
   hasPendingMutation,
   getItemConflict,
 } from "@/lib/data";
-import { localGetItem, clearConflict } from "@/lib/local-store";
+import {
+  localGetItem,
+  clearConflict,
+  localGetBase,
+  localPutBase,
+} from "@/lib/local-store";
+import { diff3Merge } from "@/lib/merge";
+import MergeDialog from "./MergeDialog";
 
 const foldGutterTheme = EditorView.theme({
   ".cm-foldGutter": {
@@ -217,8 +224,18 @@ export default function Editor({
   const savedRef = useRef(file.content);
   const updatedAtRef = useRef(file.updated_at);
   const savingRef = useRef(false);
+  const conflictBusyRef = useRef(false);
   const editorViewRef = useRef<EditorView | null>(null);
   const [editableCompartment] = useState(() => new Compartment());
+  const [mergeState, setMergeState] = useState<{
+    oursResolved: string;
+    theirsResolved: string;
+    mine: string;
+    theirs: string;
+    conflictCount: number;
+    theirsUpdatedAt: string;
+  } | null>(null);
+  const [mergedNotice, setMergedNotice] = useState(false);
 
   const [isCoarsePointer] = useState(
     () =>
@@ -256,8 +273,75 @@ export default function Editor({
     [],
   );
 
+  const resolveConflict = useCallback(
+    async function self(mine: string): Promise<void> {
+      conflictBusyRef.current = true;
+      const base = await localGetBase(file.id);
+      const theirsRes = await run(() => refreshFileContent(file.id));
+      if (!("content" in theirsRes) || theirsRes.content === undefined) {
+        setSaveState("error");
+        conflictBusyRef.current = false;
+        return;
+      }
+      const theirs = theirsRes.content;
+      const theirsUpdatedAt = theirsRes.updatedAt;
+
+      if (!base) {
+        const overwrite = await confirm({
+          title: "this file was changed elsewhere",
+          message:
+            "overwrite the other version with yours, or discard yours and reload?",
+          confirmText: "overwrite",
+          cancelText: "discard mine",
+          danger: true,
+        });
+        if (overwrite) {
+          const forced = await run(() => updateFileContent(file.id, mine));
+          replaceEditorContent(
+            mine,
+            ("updatedAt" in forced && forced.updatedAt) || theirsUpdatedAt,
+          );
+        } else {
+          replaceEditorContent(theirs, theirsUpdatedAt);
+        }
+        conflictBusyRef.current = false;
+        return;
+      }
+
+      const result = diff3Merge(base.content, mine, theirs);
+
+      if (result.clean) {
+        const saved = await run(() =>
+          updateFileContent(file.id, result.merged, theirsUpdatedAt),
+        );
+        if ("error" in saved && saved.error === "conflict") {
+          return self(result.merged);
+        }
+        replaceEditorContent(
+          result.merged,
+          ("updatedAt" in saved && saved.updatedAt) || theirsUpdatedAt,
+        );
+        setMergedNotice(true);
+        conflictBusyRef.current = false;
+        return;
+      }
+
+      setSaveState("unsaved");
+      setMergeState({
+        oursResolved: result.oursResolved,
+        theirsResolved: result.theirsResolved,
+        mine,
+        theirs,
+        conflictCount: result.conflictCount,
+        theirsUpdatedAt,
+      });
+    },
+    [file.id, run, confirm, replaceEditorContent],
+  );
+
   const save = useCallback(
     async (force = false): Promise<void> => {
+      if (conflictBusyRef.current) return;
       if (savingRef.current) return;
       if (contentRef.current === savedRef.current) return;
 
@@ -276,22 +360,7 @@ export default function Editor({
 
         if ("error" in res && res.error === "conflict") {
           savingRef.current = false;
-          const overwrite = await confirm({
-            title: "this file was changed elsewhere",
-            message:
-              "overwrite the other version with yours, or discard yours and reload?",
-            confirmText: "overwrite",
-            cancelText: "discard mine",
-            danger: true,
-          });
-          if (overwrite) {
-            return save(true);
-          } else {
-            const refresh = await run(() => refreshFileContent(file.id));
-            if ("content" in refresh && refresh.content !== undefined) {
-              replaceEditorContent(refresh.content, refresh.updatedAt);
-            }
-          }
+          await resolveConflict(captured);
         } else if ("error" in res && res.error) {
           setSaveState("error");
         } else {
@@ -311,10 +380,11 @@ export default function Editor({
         setEditable(true);
       }
     },
-    [setEditable, file.id, run, confirm, replaceEditorContent],
+    [setEditable, file.id, run, resolveConflict],
   );
 
   const handleRefresh = useCallback(async () => {
+    if (conflictBusyRef.current) return;
     if (contentRef.current !== savedRef.current) {
       const ok = await confirm({
         title: "discard unsaved changes?",
@@ -330,6 +400,52 @@ export default function Editor({
       replaceEditorContent(refresh.content, refresh.updatedAt);
     }
   }, [run, file.id, confirm, replaceEditorContent]);
+
+  const handleMergeResolve = useCallback(
+    async (merged: string) => {
+      if (!mergeState) return;
+      const { theirsUpdatedAt } = mergeState;
+      setMergeState(null);
+      const saved = await run(() =>
+        updateFileContent(file.id, merged, theirsUpdatedAt),
+      );
+      if ("error" in saved && saved.error === "conflict") {
+        // changed again while the user was resolving — restart the flow
+        await resolveConflict(merged);
+        return;
+      }
+      replaceEditorContent(
+        merged,
+        ("updatedAt" in saved && saved.updatedAt) || theirsUpdatedAt,
+      );
+      conflictBusyRef.current = false;
+    },
+    [mergeState, file.id, run, replaceEditorContent, resolveConflict],
+  );
+
+  const handleMergeUseMine = useCallback(async () => {
+    if (!mergeState) return;
+    const mine = mergeState.mine;
+    setMergeState(null);
+    const forced = await run(() => updateFileContent(file.id, mine));
+    replaceEditorContent(
+      mine,
+      ("updatedAt" in forced && forced.updatedAt) || updatedAtRef.current,
+    );
+    conflictBusyRef.current = false;
+  }, [mergeState, file.id, run, replaceEditorContent]);
+
+  const handleMergeUseTheirs = useCallback(() => {
+    if (!mergeState) return;
+    replaceEditorContent(mergeState.theirs, mergeState.theirsUpdatedAt);
+    setMergeState(null);
+    conflictBusyRef.current = false;
+  }, [mergeState, replaceEditorContent]);
+
+  const handleMergeCancel = useCallback(() => {
+    setMergeState(null);
+    conflictBusyRef.current = false;
+  }, []);
 
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
@@ -367,6 +483,7 @@ export default function Editor({
     setContent(value);
     contentRef.current = value;
     setSaveState(value === savedRef.current ? "saved" : "unsaved");
+    if (mergedNotice) setMergedNotice(false);
   };
 
   // reflect unsynced offline edits in the indicator
@@ -378,33 +495,40 @@ export default function Editor({
     });
   }, [file.id]);
 
+  // backfill a merge base for files that predate this feature
+  useEffect(() => {
+    (async () => {
+      if (await localGetBase(file.id)) return;
+      if (await hasPendingMutation(file.id)) return; // unsynced edit — not a clean base
+      await localPutBase({
+        id: file.id,
+        content: file.content,
+        updatedAt: file.updated_at,
+      });
+    })();
+  }, [file.id, file.content, file.updated_at]);
+
+  // the auto-merge confirmation fades on its own
+  useEffect(() => {
+    if (!mergedNotice) return;
+    const t = setTimeout(() => setMergedNotice(false), 6000);
+    return () => clearTimeout(t);
+  }, [mergedNotice]);
+
   // a queued save that conflicted on another device — resolve on open
   useEffect(() => {
     let cancelled = false;
     getItemConflict(file.id).then(async (c) => {
       if (!c || cancelled) return;
-      const overwrite = await confirm({
-        title: "this file was changed elsewhere",
-        message:
-          "overwrite the other version with yours, or discard yours and reload?",
-        confirmText: "overwrite",
-        cancelText: "discard mine",
-        danger: true,
-      });
-      if (overwrite) {
-        await run(() => updateFileContent(file.id, contentRef.current));
-      } else {
-        const refresh = await run(() => refreshFileContent(file.id));
-        if ("content" in refresh && refresh.content !== undefined) {
-          replaceEditorContent(refresh.content, refresh.updatedAt);
-        }
-      }
+      // a real merge needs the server's current version — defer if offline
+      if (typeof navigator !== "undefined" && !navigator.onLine) return;
       await clearConflict(file.id);
+      await resolveConflict(c.localContent);
     });
     return () => {
       cancelled = true;
     };
-  }, [file.id, confirm, run, replaceEditorContent]);
+  }, [file.id, resolveConflict]);
 
   useEffect(() => {
     const vv = window.visualViewport;
@@ -438,6 +562,15 @@ export default function Editor({
             >
               <WifiOff size={10} />
               <span className="hidden sm:inline">offline</span>
+            </span>
+          )}
+          {mergedNotice && (
+            <span
+              className="flex items-center gap-1 text-accent"
+              title="merged changes from another device"
+            >
+              <GitMerge size={10} />
+              <span className="hidden sm:inline">auto-merged</span>
             </span>
           )}
           <button
@@ -494,10 +627,21 @@ export default function Editor({
           style={{ fontSize: 14, height: "100%" }}
         />
       </div>
+      {mergeState && (
+        <MergeDialog
+          fileName={file.name}
+          conflictCount={mergeState.conflictCount}
+          oursResolved={mergeState.oursResolved}
+          theirsResolved={mergeState.theirsResolved}
+          onResolve={handleMergeResolve}
+          onUseMine={handleMergeUseMine}
+          onUseTheirs={handleMergeUseTheirs}
+          onCancel={handleMergeCancel}
+        />
+      )}
     </main>
   );
 }
-
 function SaveIndicator({ state }: { state: SaveState }) {
   const isMac =
     typeof navigator !== "undefined" &&

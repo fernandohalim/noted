@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Item, PendingMutation } from "@/types";
+import type { Item, PendingMutation, BaseSnapshot } from "@/types";
 
 interface NotedDB extends DBSchema {
   items: {
@@ -14,10 +14,14 @@ interface NotedDB extends DBSchema {
     key: string;
     value: unknown;
   };
+  bases: {
+    key: string;
+    value: BaseSnapshot;
+  };
 }
 
 const DB_NAME = "noted";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<NotedDB>> | null = null;
 
@@ -36,6 +40,9 @@ export function getDB(): Promise<IDBPDatabase<NotedDB>> {
         }
         if (!db.objectStoreNames.contains("meta")) {
           db.createObjectStore("meta");
+        }
+        if (!db.objectStoreNames.contains("bases")) {
+          db.createObjectStore("bases", { keyPath: "id" });
         }
       },
       blocked() {
@@ -58,5 +65,6 @@ export async function clearLocalData(): Promise<void> {
     db.clear("items"),
     db.clear("mutations"),
     db.clear("meta"),
+    db.clear("bases"),
   ]);
 }
