@@ -1,17 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { FilePlus, FolderPlus, Upload } from "lucide-react";
-import { createItem } from "@/app/actions";
+import { createItem } from "@/lib/data";
 import { usePending } from "./PendingProvider";
 import { Loader2 } from "lucide-react";
 import { useTree } from "./TreeProvider";
 
 export default function SidebarHeader() {
-  const router = useRouter();
   const { run } = usePending();
-  const { addNode } = useTree();
+  const { addNode, openFile } = useTree();
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [name, setName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +30,7 @@ export default function SidebarHeader() {
       if (res.data) {
         addNode(res.data);
         if (creating === "file") {
-          router.push(`/?file=${res.data.id}`);
+          openFile(res.data.id);
         }
       }
     } finally {

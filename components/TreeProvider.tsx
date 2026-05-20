@@ -4,14 +4,20 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
   type ReactNode,
 } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { ItemMeta, TreeNode } from "@/types";
 import { buildTree } from "@/lib/tree";
+import { localGetAllItems } from "@/lib/local-store";
 
 interface TreeContextValue {
   tree: TreeNode[];
+  selectedId: string | undefined;
+  openFile: (id: string) => void;
+  closeFile: () => void;
   addNode: (item: ItemMeta) => void;
   renameNode: (id: string, newName: string) => void;
   removeNode: (id: string) => void;
@@ -26,38 +32,51 @@ export function useTree(): TreeContextValue {
   return ctx;
 }
 
-function flattenTree(nodes: TreeNode[]): ItemMeta[] {
-  const out: ItemMeta[] = [];
-  const walk = (ns: TreeNode[]) => {
-    for (const n of ns) {
-      const { children: _children, ...meta } = n;
-      void _children;
-      out.push(meta);
-      walk(n.children);
-    }
-  };
-  walk(nodes);
-  return out;
-}
-
 export function TreeProvider({
-  initialTree,
+  initialItems,
   children,
 }: {
-  initialTree: TreeNode[];
+  initialItems: ItemMeta[];
   children: ReactNode;
 }) {
-  // useState's initial value runs only on first render — subsequent
-  // initialTree prop changes (e.g. after navigation) are ignored.
-  // Client state stays the source of truth post-mount.
-  const [items, setItems] = useState<ItemMeta[]>(() =>
-    flattenTree(initialTree),
-  );
+  const [items, setItems] = useState<ItemMeta[]>(initialItems);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // derive the selected id directly from the url query parameters
+  const selectedId = searchParams.get("file") ?? undefined;
 
   const tree = buildTree(items);
 
+  // refresh the tree after a background sync brought new data
+  useEffect(() => {
+    const reload = () => {
+      localGetAllItems().then(setItems);
+    };
+    window.addEventListener("noted:items-updated", reload);
+    return () => window.removeEventListener("noted:items-updated", reload);
+  }, []);
+
+  const openFile = useCallback(
+    (id: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("file", id);
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [router, pathname, searchParams],
+  );
+
+  const closeFile = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("file");
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  }, [router, pathname, searchParams]);
+
   const addNode = useCallback((item: ItemMeta) => {
-    setItems((prev) => [...prev, item]);
+    setItems((prev) => [...prev.filter((i) => i.id !== item.id), item]);
   }, []);
 
   const renameNode = useCallback((id: string, newName: string) => {
@@ -68,7 +87,6 @@ export function TreeProvider({
 
   const removeNode = useCallback((id: string) => {
     setItems((prev) => {
-      // Cascade: also remove descendants
       const toRemove = new Set<string>([id]);
       let grew = true;
       while (grew) {
@@ -96,7 +114,16 @@ export function TreeProvider({
 
   return (
     <TreeContext.Provider
-      value={{ tree, addNode, renameNode, removeNode, moveNode }}
+      value={{
+        tree,
+        selectedId,
+        openFile,
+        closeFile,
+        addNode,
+        renameNode,
+        removeNode,
+        moveNode,
+      }}
     >
       {children}
     </TreeContext.Provider>

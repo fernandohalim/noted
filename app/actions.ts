@@ -8,6 +8,7 @@ export async function createItem(
   name: string,
   type: ItemType,
   content: string = "",
+  id?: string,
 ) {
   const supabase = await createClient();
   const {
@@ -21,6 +22,7 @@ export async function createItem(
   const { data, error } = await supabase
     .from("items")
     .insert({
+      ...(id ? { id } : {}),
       user_id: user.id,
       parent_id: parentId,
       name: trimmed,
@@ -62,7 +64,7 @@ export async function renameItem(id: string, newName: string) {
 
 export async function deleteItem(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("items").delete().eq("id", id);
+  const { error } = await supabase.rpc("soft_delete_item", { item_id: id });
   if (error) return { error: error.message };
   return { ok: true };
 }
@@ -73,8 +75,11 @@ export async function moveItem(id: string, newParentId: string | null) {
 
   // Prevent moving a folder into its own descendant
   if (newParentId) {
-    const { data: all } = await supabase.from("items").select("id, parent_id");
-    if (all) {
+    const { data: all } = await supabase
+      .from("items")
+      .select("id, parent_id")
+      .is("deleted_at", null);
+      if (all) {
       let cursor: string | null = newParentId;
       while (cursor) {
         if (cursor === id) return { error: "cannot move into a descendant" };
@@ -111,6 +116,7 @@ export async function updateFileContent(
       .select("updated_at")
       .eq("id", id)
       .eq("user_id", user.id)
+      .is("deleted_at", null)
       .single();
 
     if (current && current.updated_at !== expectedUpdatedAt) {
@@ -127,6 +133,7 @@ export async function updateFileContent(
     .eq("id", id)
     .eq("user_id", user.id)
     .eq("type", "file")
+    .is("deleted_at", null)
     .select("updated_at")
     .single();
 
@@ -146,6 +153,7 @@ export async function refreshFileContent(id: string) {
     .select("content, updated_at")
     .eq("id", id)
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .single();
 
   if (error) return { error: error.message };
@@ -153,4 +161,27 @@ export async function refreshFileContent(id: string) {
     content: data.content as string,
     updatedAt: data.updated_at as string,
   };
+}
+
+export async function getItemsSince(updatedAt: string | null) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthorized" as const, data: [] };
+
+  let query = supabase
+    .from("items")
+    .select(
+      "id, user_id, parent_id, name, type, content, created_at, updated_at, deleted_at",
+    )
+    .eq("user_id", user.id);
+
+  if (updatedAt) {
+    query = query.gt("updated_at", updatedAt);
+  }
+
+  const { data, error } = await query.order("updated_at", { ascending: true });
+  if (error) return { error: error.message, data: [] };
+  return { data: data ?? [] };
 }

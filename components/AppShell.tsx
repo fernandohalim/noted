@@ -1,44 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import type { TreeNode, Item } from "@/types";
 import TitleBar from "./TitleBar";
 import Sidebar from "./Sidebar";
 import Workstation from "./Workstation";
+import ShortcutPalette from "./ShortcutPalette";
+import SyncProvider, { useSync } from "./SyncProvider";
 import { TreeProvider, useTree } from "./TreeProvider";
 
 export default function AppShell({
   email,
-  tree,
-  selectedId,
-  selectedFile,
+  userId,
 }: {
   email: string;
-  tree: TreeNode[];
-  selectedId?: string;
-  selectedFile: Item | null;
+  userId: string;
 }) {
   return (
-    <TreeProvider initialTree={tree}>
-      <AppShellInner
-        email={email}
-        selectedId={selectedId}
-        selectedFile={selectedFile}
-      />
+    <SyncProvider userId={userId}>
+      <TreeBootstrap email={email} />
+    </SyncProvider>
+  );
+}
+
+function TreeBootstrap({ email }: { email: string }) {
+  const { initialItems } = useSync();
+  return (
+    <TreeProvider initialItems={initialItems}>
+      <AppShellInner email={email} />
     </TreeProvider>
   );
 }
 
-function AppShellInner({
-  email,
-  selectedId,
-  selectedFile,
-}: {
-  email: string;
-  selectedId?: string;
-  selectedFile: Item | null;
-}) {
-  const { tree } = useTree();
+function AppShellInner({ email }: { email: string }) {
+  const { tree, selectedId } = useTree();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prevSelectedId, setPrevSelectedId] = useState(selectedId);
 
@@ -61,8 +55,9 @@ function AppShellInner({
           />
         )}
         <Sidebar tree={tree} selectedId={selectedId} isOpen={sidebarOpen} />
-        <Workstation file={selectedFile} tree={tree} />
+        <Workstation selectedId={selectedId} tree={tree} />
       </div>
+      <ShortcutPalette />
     </div>
   );
 }

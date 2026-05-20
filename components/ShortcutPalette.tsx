@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { createItem } from "@/app/actions";
+import { createItem } from "@/lib/data";
 import { usePending } from "./PendingProvider";
 import { usePrompt } from "./PromptDialog";
+import { useTree } from "./TreeProvider";
 
 const isMac =
   typeof navigator !== "undefined" &&
@@ -75,10 +75,10 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 export default function ShortcutPalette() {
-  const router = useRouter();
   const { run } = usePending();
   const prompt = usePrompt();
   const [open, setOpen] = useState(false);
+  const { openFile } = useTree();
 
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
@@ -103,7 +103,7 @@ export default function ShortcutPalette() {
         });
         if (name) {
           const res = await run(() => createItem(null, name, "file"));
-          if (res.data) router.push(`/?file=${res.data.id}`);
+          if (res.data) openFile(res.data.id);
         }
       } else if (e.key === "N") {
         e.preventDefault();
@@ -116,7 +116,7 @@ export default function ShortcutPalette() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [open, router, run, prompt]);
+  }, [open, run, prompt, openFile]);
 
   useEffect(() => {
     const handler = () => setOpen((o) => !o);

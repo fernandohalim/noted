@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { TreeNode } from "@/types";
 import TreeNodeComponent from "./TreeNode";
-import { moveItem } from "@/app/actions";
+import { moveItem } from "@/lib/data";
 import { usePending } from "./PendingProvider";
 import { usePendingItems } from "./PendingItemsProvider";
 import { useTree } from "./TreeProvider";

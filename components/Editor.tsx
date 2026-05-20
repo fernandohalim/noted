@@ -7,14 +7,19 @@ import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { RotateCw, WifiOff } from "lucide-react";
 import type { Item, TreeNode } from "@/types";
-import { updateFileContent, refreshFileContent } from "@/app/actions";
 import { usePending } from "./PendingProvider";
 import { useConfirm } from "./ConfirmDialog";
 import { customTheme } from "@/lib/editor-theme";
-import { enqueueSave, getPendingSave, removeFromQueue } from "@/lib/sync-queue";
 import { useOnline } from "@/lib/use-online";
 import { Compartment, EditorState, Prec, StateField } from "@codemirror/state";
 import { editorCommands } from "@/lib/editor-commands";
+import {
+  updateFileContent,
+  refreshFileContent,
+  hasPendingMutation,
+  getItemConflict,
+} from "@/lib/data";
+import { localGetItem, clearConflict } from "@/lib/local-store";
 
 const foldGutterTheme = EditorView.theme({
   ".cm-foldGutter": {
@@ -202,14 +207,11 @@ export default function Editor({
   const pathArray = getFilePath(tree, file.id);
   const displayPath = pathArray ? pathArray.join(" / ") : file.name;
 
-  // If we have a pending save from offline, restore it
-  const queued = typeof window !== "undefined" ? getPendingSave(file.id) : null;
-  const initialContent = queued?.content ?? file.content;
+  // content from the local cache already includes any unsynced offline edits
+  const initialContent = file.content;
 
   const [content, setContent] = useState(initialContent);
-  const [saveState, setSaveState] = useState<SaveState>(
-    queued ? "queued" : "saved",
-  );
+  const [saveState, setSaveState] = useState<SaveState>("saved");
 
   const contentRef = useRef(initialContent);
   const savedRef = useRef(file.content);
@@ -244,27 +246,14 @@ export default function Editor({
       updatedAtRef.current = newUpdatedAt;
       setContent(newContent);
       setSaveState("saved");
-      removeFromQueue(file.id);
     },
-    [file.id],
+    [],
   );
 
   const save = useCallback(
     async (force = false): Promise<void> => {
       if (savingRef.current) return;
       if (contentRef.current === savedRef.current) return;
-
-      if (!navigator.onLine) {
-        enqueueSave({
-          fileId: file.id,
-          content: contentRef.current,
-          expectedUpdatedAt: updatedAtRef.current,
-          queuedAt: Date.now(),
-        });
-        savedRef.current = contentRef.current;
-        setSaveState("queued");
-        return;
-      }
 
       savingRef.current = true;
       setEditable(false);
@@ -279,7 +268,7 @@ export default function Editor({
           ),
         );
 
-        if (res.error === "conflict") {
+        if ("error" in res && res.error === "conflict") {
           savingRef.current = false;
           const overwrite = await confirm({
             title: "this file was changed elsewhere",
@@ -297,14 +286,19 @@ export default function Editor({
               replaceEditorContent(refresh.content, refresh.updatedAt);
             }
           }
-        } else if (res.error) {
+        } else if ("error" in res && res.error) {
           setSaveState("error");
         } else {
           savedRef.current = captured;
           if ("updatedAt" in res && res.updatedAt)
             updatedAtRef.current = res.updatedAt;
-          removeFromQueue(file.id);
-          setSaveState(contentRef.current === captured ? "saved" : "unsaved");
+          setSaveState(
+            "queued" in res && res.queued
+              ? "queued"
+              : contentRef.current === captured
+                ? "saved"
+                : "unsaved",
+          );
         }
       } finally {
         savingRef.current = false;
@@ -348,27 +342,63 @@ export default function Editor({
     return () => document.removeEventListener("keydown", handler);
   }, [save, handleRefresh]);
 
-  // After SyncManager replays our file's queued save, refresh our updated_at stamp
+  // background sync may have pulled a newer version of this file
   useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (detail?.fileId !== file.id) return;
-      refreshFileContent(file.id).then((res) => {
-        if ("updatedAt" in res && res.updatedAt) {
-          updatedAtRef.current = res.updatedAt;
-          if (contentRef.current === savedRef.current) setSaveState("saved");
-        }
-      });
+    const handler = async () => {
+      const latest = await localGetItem(file.id);
+      if (!latest) return;
+      updatedAtRef.current = latest.updated_at;
+      const hasUnsaved = contentRef.current !== savedRef.current;
+      if (!hasUnsaved && latest.content !== contentRef.current) {
+        replaceEditorContent(latest.content, latest.updated_at);
+      }
     };
-    window.addEventListener("noted:synced", handler);
-    return () => window.removeEventListener("noted:synced", handler);
-  }, [file.id]);
+    window.addEventListener("noted:items-updated", handler);
+    return () => window.removeEventListener("noted:items-updated", handler);
+  }, [file.id, replaceEditorContent]);
 
   const onChange = (value: string) => {
     setContent(value);
     contentRef.current = value;
     setSaveState(value === savedRef.current ? "saved" : "unsaved");
   };
+
+  // reflect unsynced offline edits in the indicator
+  useEffect(() => {
+    hasPendingMutation(file.id).then((pending) => {
+      if (pending && contentRef.current === savedRef.current) {
+        setSaveState("queued");
+      }
+    });
+  }, [file.id]);
+
+  // a queued save that conflicted on another device — resolve on open
+  useEffect(() => {
+    let cancelled = false;
+    getItemConflict(file.id).then(async (c) => {
+      if (!c || cancelled) return;
+      const overwrite = await confirm({
+        title: "this file was changed elsewhere",
+        message:
+          "overwrite the other version with yours, or discard yours and reload?",
+        confirmText: "overwrite",
+        cancelText: "discard mine",
+        danger: true,
+      });
+      if (overwrite) {
+        await run(() => updateFileContent(file.id, contentRef.current));
+      } else {
+        const refresh = await run(() => refreshFileContent(file.id));
+        if ("content" in refresh && refresh.content !== undefined) {
+          replaceEditorContent(refresh.content, refresh.updatedAt);
+        }
+      }
+      await clearConflict(file.id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [file.id, confirm, run, replaceEditorContent]);
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">

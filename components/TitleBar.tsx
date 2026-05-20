@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useOnline } from "@/lib/use-online";
 import AboutModal from "./AboutModal";
+import { localClearAll } from "@/lib/local-store";
 
 export default function TitleBar({
   email,
@@ -24,6 +25,7 @@ export default function TitleBar({
     setSigningOut(true);
     const supabase = createClient();
     await supabase.auth.signOut();
+    await localClearAll();
     router.push("/login");
   };
 

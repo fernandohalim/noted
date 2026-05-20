@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronRight, File, Folder, MoreHorizontal } from "lucide-react";
 import type { TreeNode } from "@/types";
 import {
@@ -11,7 +10,7 @@ import {
   moveItem,
   getFolderTree,
   refreshFileContent,
-} from "@/app/actions";
+} from "@/lib/data";
 import ContextMenu, { type MenuItem } from "./ContextMenu";
 import MoveDialog from "./MoveDialog";
 import { useConfirm } from "./ConfirmDialog";
@@ -36,7 +35,6 @@ export default function TreeNodeComponent({
   expandedSet,
   onToggle,
 }: Props) {
-  const router = useRouter();
   const isExpanded = expandedSet.has(node.id);
   const isSelected = selectedId === node.id;
 
@@ -53,13 +51,14 @@ export default function TreeNodeComponent({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isPending, withPending } = usePendingItems();
-  const { addNode, renameNode, removeNode, moveNode } = useTree();
+  const { addNode, renameNode, removeNode, moveNode, openFile, closeFile } =
+    useTree();
   const [createBusy, setCreateBusy] = useState(false);
   const busy = isPending(node.id);
 
   const handleClick = () => {
     if (node.type === "folder") onToggle(node.id);
-    else router.push(`/?file=${node.id}`);
+    else openFile(node.id);
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -105,7 +104,7 @@ export default function TreeNodeComponent({
       alert(res.error);
     } else {
       removeNode(node.id);
-      if (isSelected) router.push("/");
+      if (isSelected) closeFile();
     }
   };
 
@@ -186,7 +185,7 @@ export default function TreeNodeComponent({
         addNode(res.data);
         if (!expandedSet.has(node.id)) onToggle(node.id);
         if (creating === "file") {
-          router.push(`/?file=${res.data.id}`);
+          openFile(res.data.id);
         }
       }
     } finally {

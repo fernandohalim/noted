@@ -1,5 +1,18 @@
 export const releases = [
   {
+    version: "1.2",
+    date: "may 2026",
+    title: "local-first storage",
+    badge: "feature",
+    features: [
+      "notes are now cached on-device — opening any note is instant, with no loading spinner or network wait",
+      "edits save locally first and sync to the server in the background; nothing is lost if you drop offline mid-edit",
+      "fresh devices show a brief loading screen on first launch while notes sync down",
+      "edits made on another device are picked up automatically; genuine conflicts still prompt you to choose which version to keep",
+      "deletions now propagate reliably across devices",
+    ],
+  },
+  {
     version: "1.1.1",
     date: "may 2026",
     title: "performance & mobile polish",

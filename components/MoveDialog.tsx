@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronRight, Folder, Home } from "lucide-react";
-import { moveItem } from "@/app/actions";
-import { createClient } from "@/lib/supabase/client";
+import { moveItem, getFolders } from "@/lib/data";
 import { buildTree } from "@/lib/tree";
-import type { ItemMeta, TreeNode } from "@/types";
+import type { TreeNode } from "@/types";
 import { usePending } from "./PendingProvider";
 import { useTree } from "./TreeProvider";
 
@@ -29,12 +28,8 @@ export default function MoveDialog({
 
   useEffect(() => {
     (async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("items")
-        .select("id, user_id, parent_id, name, type, created_at, updated_at")
-        .eq("type", "folder");
-      if (data) setTree(buildTree(data as ItemMeta[]));
+      const folders = await getFolders();
+      setTree(buildTree(folders));
       setLoading(false);
     })();
   }, []);
