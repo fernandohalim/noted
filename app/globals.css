@@ -140,6 +140,6 @@ body {
 
 @media (max-width: 640px) {
   .cm-content {
-    padding-bottom: 50vh;
+    padding-bottom: var(--cm-keyboard-pad, 50vh);
   }
 }

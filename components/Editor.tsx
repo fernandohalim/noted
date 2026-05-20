@@ -108,7 +108,7 @@ function getTooltip(state: EditorState): readonly Tooltip[] {
   // it conflicts with the native selection menu.
   if (
     typeof window !== "undefined" &&
-    window.matchMedia("(pointer: coarse)").matches
+    window.matchMedia("(any-pointer: coarse)").matches
   ) {
     return [];
   }
@@ -219,6 +219,12 @@ export default function Editor({
   const savingRef = useRef(false);
   const editorViewRef = useRef<EditorView | null>(null);
   const [editableCompartment] = useState(() => new Compartment());
+
+  const [isCoarsePointer] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(any-pointer: coarse)").matches,
+  );
 
   const setEditable = useCallback(
     (editable: boolean) => {
@@ -400,6 +406,24 @@ export default function Editor({
     };
   }, [file.id, confirm, run, replaceEditorContent]);
 
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const apply = () => {
+      document.documentElement.style.setProperty(
+        "--cm-keyboard-pad",
+        `${Math.round(vv.height * 0.5)}px`,
+      );
+    };
+    apply();
+    vv.addEventListener("resize", apply);
+    vv.addEventListener("scroll", apply);
+    return () => {
+      vv.removeEventListener("resize", apply);
+      vv.removeEventListener("scroll", apply);
+    };
+  }, []);
+
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
       <div className="h-9 border-b border-border flex items-center justify-between px-3 text-xs shrink-0">
@@ -446,10 +470,9 @@ export default function Editor({
           extensions={[
             markdown({ codeLanguages: languages }),
             EditorView.lineWrapping,
-            EditorView.scrollMargins.of(() => ({
-              bottom: 80,
-              top: 40,
-            })),
+            ...(isCoarsePointer
+              ? []
+              : [EditorView.scrollMargins.of(() => ({ bottom: 80, top: 40 }))]),
             Prec.highest(keymap.of(editorCommands)),
             EditorState.tabSize.of(2),
             editableCompartment.of(EditorView.editable.of(true)),

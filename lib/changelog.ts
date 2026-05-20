@@ -1,5 +1,15 @@
 export const releases = [
   {
+    version: "1.2.2",
+    date: "may 2026",
+    title: "mobile fix",
+    badge: "patch",
+    features: [
+      "removed formatting toolbar behind native menu in mobile",
+      "fix mobile scroll jumps"
+    ],
+  },
+  {
     version: "1.2.1",
     date: "may 2026",
     title: "instant note switching",
