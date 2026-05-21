@@ -278,25 +278,51 @@ export async function updateFileContent(
     return { ok: true, queued: true };
   }
 
-  const res = await srvUpdateContent(id, content, expectedUpdatedAt);
-  if ("error" in res && res.error === "conflict") {
-    return {
-      error: "conflict",
-      currentUpdatedAt:
-        (res as { currentUpdatedAt?: string }).currentUpdatedAt ?? "",
-    };
-  }
-  if ("error" in res && res.error) {
+  try {
+    const res = await srvUpdateContent(id, content, expectedUpdatedAt);
+    if ("error" in res && res.error === "conflict") {
+      return {
+        error: "conflict",
+        currentUpdatedAt:
+          (res as { currentUpdatedAt?: string }).currentUpdatedAt ?? "",
+      };
+    }
+    if ("error" in res && res.error) {
+      await queue();
+      return { ok: true, queued: true };
+    }
+    const updatedAt = (res as { updatedAt?: string }).updatedAt;
+    if (existing && updatedAt) {
+      await localPutItem({ ...existing, content, updated_at: updatedAt });
+      // our content is now server-confirmed — it becomes the new base
+      await localPutBase({ id, content, updatedAt });
+    }
+    return { ok: true, updatedAt };
+  } catch (err) {
+    // the server action threw (transient network/server error) — keep the
+    // edit safe by queueing it for the next sync instead of surfacing a
+    // hard failure. content is already persisted locally above.
+    console.error("[updateFileContent] server call failed", err);
     await queue();
     return { ok: true, queued: true };
   }
-  const updatedAt = (res as { updatedAt?: string }).updatedAt;
-  if (existing && updatedAt) {
-    await localPutItem({ ...existing, content, updated_at: updatedAt });
-    // our content is now server-confirmed — it becomes the new base
-    await localPutBase({ id, content, updatedAt });
+}
+
+/**
+ * Local-only durable write, used by the editor's debounced autosave.
+ * Updates just the cached content so in-progress edits survive navigation
+ * or a refresh before a server save has run. Deliberately preserves
+ * updated_at — that timestamp is the editor's reference point for server
+ * conflict detection, so bumping it here would cause false conflicts.
+ */
+export async function persistLocalContent(
+  id: string,
+  content: string,
+): Promise<void> {
+  const existing = await localGetItem(id);
+  if (existing && existing.content !== content) {
+    await localPutItem({ ...existing, content });
   }
-  return { ok: true, updatedAt };
 }
 
 export async function refreshFileContent(

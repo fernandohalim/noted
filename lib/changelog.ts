@@ -1,5 +1,18 @@
 export const releases = [
   {
+    version: "1.3.1",
+    date: "may 2026",
+    title: "changelog & save reliability",
+    badge: "patch",
+    features: [
+      "rebuilt changelog as a commit-style timeline so it blends with the rest of the app instead of looking like a separate page",
+      "edits are now written to on-device storage as you type — switching notes or closing a note mid-edit no longer loses anything",
+      "leaving a note now flushes a final save to the server instead of relying solely on the editor losing focus",
+      "save failures from a flaky connection now retry through the offline queue instead of silently stalling on \"saving\"",
+      "fixed the changelog page being unable to scroll",
+    ],
+  },
+  {
     version: "1.3",
     date: "may 2026",
     title: "three-way merge for conflicts",

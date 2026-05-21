@@ -18,12 +18,14 @@ import {
   refreshFileContent,
   hasPendingMutation,
   getItemConflict,
+  persistLocalContent,
 } from "@/lib/data";
 import {
   localGetItem,
   clearConflict,
   localGetBase,
   localPutBase,
+  setConflict,
 } from "@/lib/local-store";
 import { diff3Merge } from "@/lib/merge";
 import MergeDialog from "./MergeDialog";
@@ -226,6 +228,7 @@ export default function Editor({
   const savingRef = useRef(false);
   const conflictBusyRef = useRef(false);
   const editorViewRef = useRef<EditorView | null>(null);
+  const localPersistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editableCompartment] = useState(() => new Compartment());
   const [mergeState, setMergeState] = useState<{
     oursResolved: string;
@@ -375,6 +378,11 @@ export default function Editor({
                 : "unsaved",
           );
         }
+      } catch (err) {
+        // a thrown error must not leave the indicator stuck on "saving" —
+        // surface it so the user (and we) can see the save didn't land
+        console.error("[save] failed", err);
+        setSaveState("error");
       } finally {
         savingRef.current = false;
         setEditable(true);
@@ -484,6 +492,14 @@ export default function Editor({
     contentRef.current = value;
     setSaveState(value === savedRef.current ? "saved" : "unsaved");
     if (mergedNotice) setMergedNotice(false);
+
+    // durable local autosave — debounced. keeps the on-device copy current
+    // so closing the note (or the tab) mid-edit never loses anything, even
+    // before a server save runs.
+    if (localPersistTimer.current) clearTimeout(localPersistTimer.current);
+    localPersistTimer.current = setTimeout(() => {
+      void persistLocalContent(file.id, contentRef.current);
+    }, 400);
   };
 
   // reflect unsynced offline edits in the indicator
@@ -547,6 +563,41 @@ export default function Editor({
       vv.removeEventListener("scroll", apply);
     };
   }, []);
+
+  // never lose edits when navigating away: flush the latest content on unmount.
+  // switching notes remounts the editor, so this fires on every note change.
+  useEffect(() => {
+    return () => {
+      if (localPersistTimer.current) clearTimeout(localPersistTimer.current);
+      // the CodeMirror view is being torn down — drop the ref so any late
+      // async callback (e.g. a resolving confirm dialog) can't dispatch to it
+      editorViewRef.current = null;
+
+      const latest = contentRef.current;
+      if (latest !== savedRef.current && !conflictBusyRef.current) {
+        // unsynced edits — persist locally and push to the server.
+        // fire-and-forget: the editor is unmounting so the interactive merge
+        // flow can't run here; record any conflict for the next open instead.
+        void updateFileContent(file.id, latest, updatedAtRef.current).then(
+          (res) => {
+            if ("error" in res && res.error === "conflict") {
+              void setConflict({
+                itemId: file.id,
+                localContent: latest,
+                localExpectedUpdatedAt: updatedAtRef.current ?? "",
+                serverUpdatedAt:
+                  (res as { currentUpdatedAt?: string }).currentUpdatedAt ?? "",
+                detectedAt: Date.now(),
+              });
+            }
+          },
+        );
+      } else {
+        // nothing to sync, but make sure the local copy is durable
+        void persistLocalContent(file.id, latest);
+      }
+    };
+  }, [file.id]);
 
   return (
     <main className="flex-1 flex flex-col overflow-hidden">
