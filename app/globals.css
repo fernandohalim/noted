@@ -44,6 +44,14 @@ body {
   background: #333;
 }
 
+/* utility: hide the scrollbar but keep scrolling (used by the toolbar) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes progress-slide {
   0% {
     transform: translateX(-100%);
@@ -142,6 +150,45 @@ body {
   .cm-content {
     padding-bottom: var(--cm-keyboard-pad, 50vh);
   }
+}
+
+/* fenced code blocks — concealed ``` fences, styled container.
+   line decorations (.cm-cb*) are applied by lib/markdown-decorations.ts */
+.cm-line.cm-cb {
+  background: var(--color-bg-elevated);
+  border-left: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+}
+.cm-line.cm-cb-top {
+  border-top: 1px solid var(--color-border);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+.cm-line.cm-cb-bottom {
+  border-bottom: 1px solid var(--color-border);
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+/* header shown in place of the opening ``` line */
+.cm-cb-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+.cm-cb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--color-accent);
+  display: inline-block;
+}
+.cm-cb-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
 }
 
 /* 3-way merge dialog */

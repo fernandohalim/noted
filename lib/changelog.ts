@@ -1,5 +1,18 @@
 export const releases = [
   {
+    version: "1.4",
+    date: "may 2026",
+    title: "live formatting & the editor toolbar",
+    badge: "feature",
+    features: [
+      "added a persistent formatting toolbar — pinned to the bottom of the editor",
+      "bold, italic and inline-code markers are now concealed as you type",
+      "fenced code blocks render as a styled container with the language shown in a small header",
+      "find & replace (ctrl+f) is now reachable on mobile straight from the toolbar — no hardware keyboard required",
+      "retired the floating selection popover on desktop in favour of the always-visible toolbar and keyboard shortcuts",
+    ],
+  },
+  {
     version: "1.3.1",
     date: "may 2026",
     title: "changelog & save reliability",

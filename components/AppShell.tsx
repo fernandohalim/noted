@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TitleBar from "./TitleBar";
 import Sidebar from "./Sidebar";
 import Workstation from "./Workstation";
@@ -41,8 +41,32 @@ function AppShellInner({ email }: { email: string }) {
     setSidebarOpen(false);
   }
 
+  // Track the visual viewport so the app exactly fills the space *above* the
+  // soft keyboard on mobile. With the layout sized to the visible area, the
+  // editor's bottom toolbar (a normal flow element) stays above the keyboard
+  // on every platform — iOS included, where `interactive-widget` is ignored.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const apply = () => {
+      const h = vv?.height ?? window.innerHeight;
+      document.documentElement.style.setProperty(
+        "--app-vh",
+        `${Math.round(h)}px`,
+      );
+    };
+    apply();
+    vv?.addEventListener("resize", apply);
+    vv?.addEventListener("scroll", apply);
+    window.addEventListener("resize", apply);
+    return () => {
+      vv?.removeEventListener("resize", apply);
+      vv?.removeEventListener("scroll", apply);
+      window.removeEventListener("resize", apply);
+    };
+  }, []);
+
   return (
-    <div className="h-dvh flex flex-col">
+    <div className="flex flex-col" style={{ height: "var(--app-vh, 100dvh)" }}>
       <TitleBar
         email={email}
         onToggleSidebar={() => setSidebarOpen((o) => !o)}

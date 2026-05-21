@@ -34,6 +34,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   themeColor: "#0a0a0a",
   viewportFit: "cover",
+  // shrink the layout viewport when the soft keyboard opens, so the editor's
+  // bottom toolbar lands above the keyboard instead of behind it
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

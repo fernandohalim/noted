@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { EditorView, keymap, showTooltip, Tooltip } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { RotateCw, WifiOff, GitMerge } from "lucide-react";
@@ -11,8 +11,10 @@ import { usePending } from "./PendingProvider";
 import { useConfirm } from "./ConfirmDialog";
 import { customTheme } from "@/lib/editor-theme";
 import { useOnline } from "@/lib/use-online";
-import { Compartment, EditorState, Prec, StateField } from "@codemirror/state";
+import { Compartment, EditorState, Prec } from "@codemirror/state";
 import { editorCommands } from "@/lib/editor-commands";
+import { markdownDecorations } from "@/lib/markdown-decorations";
+import EditorToolbar from "./EditorToolbar";
 import {
   updateFileContent,
   refreshFileContent,
@@ -81,125 +83,6 @@ function getFilePath(
     }
   }
   return null;
-}
-
-// helper to wrap selected text
-function wrapSelection(view: EditorView, before: string, after: string) {
-  const range = view.state.selection.ranges[0];
-  if (!range) return;
-  view.dispatch({
-    changes: [
-      { from: range.from, insert: before },
-      { from: range.to, insert: after },
-    ],
-    selection: {
-      anchor: range.from + before.length,
-      head: range.to + before.length,
-    },
-  });
-}
-
-// defines the tooltip extension
-const selectionTooltip = StateField.define<readonly Tooltip[]>({
-  create(state) {
-    return getTooltip(state);
-  },
-  update(tooltips, tr) {
-    if (!tr.docChanged && !tr.selection) return tooltips;
-    return getTooltip(tr.state);
-  },
-  provide: (f) => showTooltip.computeN([f], (state) => state.field(f)),
-});
-
-// builds the actual dom element for the tooltip
-function getTooltip(state: EditorState): readonly Tooltip[] {
-  // Disable the custom selection toolbar on touch devices —
-  // it conflicts with the native selection menu.
-  if (
-    typeof window !== "undefined" &&
-    window.matchMedia("(any-pointer: coarse)").matches
-  ) {
-    return [];
-  }
-
-  const ranges = state.selection.ranges;
-  if (ranges.length === 0 || ranges[0].empty) return [];
-
-  const range = ranges[0];
-  return [
-    {
-      pos: Math.min(range.head, range.anchor),
-      above: true,
-      strictSide: true,
-      arrow: true,
-      create: (view: EditorView) => {
-        const dom = document.createElement("div");
-        // using --color-bg-elevated and removing rounded classes
-        dom.className =
-          "flex items-center gap-1 p-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-none shadow-lg text-xs z-50 text-[var(--color-text)]";
-
-        const boldBtn = document.createElement("button");
-        boldBtn.textContent = "B";
-        boldBtn.className =
-          "font-bold px-2 py-1 hover:bg-[var(--color-bg-hover)] rounded-none cursor-pointer";
-        boldBtn.onclick = (e) => {
-          e.preventDefault();
-          wrapSelection(view, "**", "**");
-          view.focus();
-        };
-        dom.appendChild(boldBtn);
-
-        const italicBtn = document.createElement("button");
-        italicBtn.textContent = "I";
-        italicBtn.className =
-          "italic px-2 py-1 hover:bg-[var(--color-bg-hover)] rounded-none cursor-pointer";
-        italicBtn.onclick = (e) => {
-          e.preventDefault();
-          wrapSelection(view, "*", "*");
-          view.focus();
-        };
-        dom.appendChild(italicBtn);
-
-        const select = document.createElement("select");
-        // ensuring text color is explicitly set so it doesn't wash out
-        select.className =
-          "ml-1 px-2 py-1 bg-transparent hover:bg-[var(--color-bg-hover)] rounded-none outline-none cursor-pointer text-[var(--color-text)]";
-
-        const langs = [
-          { val: "", label: "code block..." },
-          { val: "js", label: "javascript" },
-          { val: "ts", label: "typescript" },
-          { val: "sql", label: "sql" },
-          { val: "python", label: "python" },
-          { val: "html", label: "html" },
-          { val: "css", label: "css" },
-          { val: "json", label: "json" },
-        ];
-
-        langs.forEach((l) => {
-          const opt = document.createElement("option");
-          opt.value = l.val;
-          opt.textContent = l.label;
-          // matching the dropdown background to the tooltip container
-          opt.className =
-            "bg-[var(--color-bg-elevated)] text-[var(--color-text)]";
-          select.appendChild(opt);
-        });
-
-        select.onchange = (e) => {
-          const val = (e.target as HTMLSelectElement).value;
-          if (val) {
-            wrapSelection(view, "\n```" + val + "\n", "\n```\n");
-            select.value = "";
-            view.focus();
-          }
-        };
-        dom.appendChild(select);
-
-        return { dom };
-      },
-    },
-  ];
 }
 
 export default function Editor({
@@ -661,7 +544,7 @@ export default function Editor({
             EditorState.tabSize.of(2),
             editableCompartment.of(EditorView.editable.of(true)),
             foldGutterTheme,
-            selectionTooltip,
+            markdownDecorations,
           ]}
           basicSetup={{
             lineNumbers: false,
@@ -678,6 +561,7 @@ export default function Editor({
           style={{ fontSize: 14, height: "100%" }}
         />
       </div>
+      <EditorToolbar getView={() => editorViewRef.current} />
       {mergeState && (
         <MergeDialog
           fileName={file.name}
