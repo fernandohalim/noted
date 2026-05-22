@@ -191,6 +191,47 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* collapsed fenced code block — a compact one-line card */
+.cm-cb-collapsed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 6px 8px 6px 10px;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.cm-cb-collapsed:hover {
+  border-color: var(--color-text-muted);
+}
+.cm-cb-count {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.cm-cb-copy {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.cm-cb-copy:hover {
+  color: var(--color-text);
+  background: var(--color-bg-hover);
+  border-color: var(--color-text-muted);
+}
+.cm-cb-copied {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
 /* 3-way merge dialog */
 .cm-mergeView,
 .cm-mergeViewEditors {

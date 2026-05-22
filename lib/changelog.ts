@@ -1,5 +1,16 @@
 export const releases = [
   {
+    version: "1.4.2",
+    date: "may 2026",
+    title: "file properties & collapsible code blocks",
+    badge: "feature",
+    features: [
+      "added a properties panel — right-click any file or folder to see its full path, created and last-updated timestamps, owner, and quick stats (word/character/line counts for files, file and folder counts for folders)",
+      "fenced code blocks now collapse to a compact one-line card showing the language, line count and a copy button — they open for editing when you click in, and re-collapse once the cursor leaves",
+      "notes now open with every code block collapsed, keeping long notes tidy",
+    ],
+  },
+  {
     version: "1.4.1",
     date: "may 2026",
     title: "smarter file creation & manual sync",

@@ -13,6 +13,7 @@ import {
 } from "@/lib/data";
 import ContextMenu, { type MenuItem } from "./ContextMenu";
 import MoveDialog from "./MoveDialog";
+import PropertiesModal from "./PropertiesModal";
 import { useConfirm } from "./ConfirmDialog";
 import { usePending } from "./PendingProvider";
 import { downloadTextFile, downloadFolderAsZip } from "@/lib/export";
@@ -42,6 +43,7 @@ export default function TreeNodeComponent({
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(node.name);
   const [moving, setMoving] = useState(false);
+  const [showProps, setShowProps] = useState(false);
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [newName, setNewName] = useState("");
   const confirm = useConfirm();
@@ -240,6 +242,7 @@ export default function TreeNodeComponent({
       label: node.type === "folder" ? "export as zip" : "export as .txt",
       onClick: handleExport,
     },
+    { label: "properties", onClick: () => setShowProps(true) },
     { type: "divider" as const },
     { label: "delete", onClick: handleDelete, danger: true },
   ];
@@ -376,6 +379,10 @@ export default function TreeNodeComponent({
           currentParentId={node.parent_id}
           onClose={() => setMoving(false)}
         />
+      )}
+
+      {showProps && (
+        <PropertiesModal itemId={node.id} onClose={() => setShowProps(false)} />
       )}
 
       {node.type === "folder" && (

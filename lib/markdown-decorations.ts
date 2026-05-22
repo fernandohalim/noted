@@ -8,17 +8,16 @@ import {
   type ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
-import type { Range } from "@codemirror/state";
+import { StateField, type EditorState, type Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import type { SyntaxNode } from "@lezer/common";
 
 /**
- * Live-preview concealment.
+ * Live-preview concealment + collapsible fenced code blocks.
  *
- * The markdown markers (** , * , `) and the ``` fences stay in the document —
- * they are only hidden *visually* via decorations. The moment the cursor or a
- * selection touches a formatted span, that span's markers are revealed again
- * so it can be edited raw (Obsidian-style).
+ * Inline marker concealment and the expanded code-block container come from a
+ * ViewPlugin. The collapsed code card is a *block* decoration, which CodeMirror
+ * only permits from a StateField — hence collapsedCodeField below.
  */
 
 type Sel = readonly { from: number; to: number }[];
@@ -31,41 +30,160 @@ function touches(sel: Sel, from: number, to: number): boolean {
   return false;
 }
 
-/** rendered in place of an opening ``` fence line */
-class FenceHeaderWidget extends WidgetType {
-  constructor(readonly lang: string) {
+/** collapsed representation of a fenced code block — a compact one-line card */
+class CollapsedCodeWidget extends WidgetType {
+  constructor(
+    readonly lang: string,
+    readonly lineCount: number,
+    readonly code: string,
+  ) {
     super();
   }
-  eq(other: FenceHeaderWidget) {
-    return other.lang === this.lang;
+  eq(other: CollapsedCodeWidget) {
+    return (
+      other.lang === this.lang &&
+      other.lineCount === this.lineCount &&
+      other.code === this.code
+    );
   }
-  toDOM() {
-    const wrap = document.createElement("span");
-    wrap.className = "cm-cb-header";
+  toDOM(view: EditorView) {
+    const card = document.createElement("div");
+    card.className = "cm-cb-collapsed";
+
     const dot = document.createElement("span");
     dot.className = "cm-cb-dot";
-    wrap.appendChild(dot);
+    card.appendChild(dot);
+
     const label = document.createElement("span");
     label.className = "cm-cb-label";
     label.textContent = this.lang || "code";
-    wrap.appendChild(label);
-    return wrap;
+    card.appendChild(label);
+
+    const count = document.createElement("span");
+    count.className = "cm-cb-count";
+    count.textContent = `${this.lineCount} ${
+      this.lineCount === 1 ? "line" : "lines"
+    }`;
+    card.appendChild(count);
+
+    const copy = document.createElement("button");
+    copy.className = "cm-cb-copy";
+    copy.type = "button";
+    copy.textContent = "copy";
+    copy.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+    copy.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      void navigator.clipboard?.writeText(this.code).then(() => {
+        copy.textContent = "copied";
+        copy.classList.add("cm-cb-copied");
+        setTimeout(() => {
+          copy.textContent = "copy";
+          copy.classList.remove("cm-cb-copied");
+        }, 1500);
+      });
+    });
+    card.appendChild(copy);
+
+    // clicking the card (anywhere but the copy button) drops the cursor
+    // inside the block, which expands it via the touch-to-reveal pass
+    card.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      const pos = view.posAtDOM(card);
+      const line = view.state.doc.lineAt(pos);
+      const bodyPos =
+        line.number < view.state.doc.lines
+          ? view.state.doc.line(line.number + 1).from
+          : pos;
+      view.dispatch({ selection: { anchor: bodyPos } });
+      view.focus();
+    });
+
+    return card;
   }
   ignoreEvent() {
-    return false;
+    return true;
   }
 }
 
 const hide = Decoration.replace({});
-
 const cbBase = Decoration.line({ class: "cm-cb" });
 const cbTop = Decoration.line({ class: "cm-cb cm-cb-top" });
 const cbBottom = Decoration.line({ class: "cm-cb cm-cb-bottom" });
 
-function fencedCode(
+// ---------- collapsed code blocks (StateField — block decos can't come from a plugin) ----------
+
+function buildCollapsed(state: EditorState): DecorationSet {
+  const out: Range<Decoration>[] = [];
+  const sel = state.selection.ranges;
+  const doc = state.doc;
+  const tree = syntaxTree(state);
+
+  tree.iterate({
+    enter: (ref) => {
+      if (ref.name !== "FencedCode") return;
+      const node = ref.node;
+      const marks = node.getChildren("CodeMark");
+      if (marks.length === 0) return false;
+
+      const openMark = marks[0];
+      const closeMark = marks.length > 1 ? marks[marks.length - 1] : null;
+      const openLine = doc.lineAt(openMark.from);
+      const closeLine = closeMark
+        ? doc.lineAt(closeMark.from)
+        : doc.lineAt(Math.min(node.to, doc.length));
+
+      // cursor inside (or flush against) the block -> leave it expanded
+      if (touches(sel, node.from, node.to)) return false;
+      // needs a real closing fence — unterminated blocks stay expanded
+      if (!closeMark || closeLine.number <= openLine.number) return false;
+
+      const info = node.getChildren("CodeInfo")[0];
+      const lang = info ? doc.sliceString(info.from, info.to).trim() : "";
+      const body: string[] = [];
+      for (let n = openLine.number + 1; n <= closeLine.number - 1; n++) {
+        body.push(doc.line(n).text);
+      }
+      out.push(
+        Decoration.replace({
+          widget: new CollapsedCodeWidget(lang, body.length, body.join("\n")),
+          block: true,
+        }).range(openLine.from, closeLine.to),
+      );
+      return false;
+    },
+  });
+
+  return Decoration.set(out, true);
+}
+
+export const collapsedCodeField = StateField.define<DecorationSet>({
+  create(state) {
+    return buildCollapsed(state);
+  },
+  update(value, tr) {
+    // recompute on edits, cursor moves, and as the parser advances
+    if (
+      tr.docChanged ||
+      tr.selection ||
+      syntaxTree(tr.startState) !== syntaxTree(tr.state)
+    ) {
+      return buildCollapsed(tr.state);
+    }
+    return value.map(tr.changes);
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+// ---------- inline concealment + expanded code container (view plugin) ----------
+
+/** the styled background lines, so an *expanded* block still reads as one unit */
+function expandedFence(
   view: EditorView,
   node: SyntaxNode,
-  sel: Sel,
   out: Range<Decoration>[],
 ) {
   const doc = view.state.doc;
@@ -79,8 +197,6 @@ function fencedCode(
     ? doc.lineAt(closeMark.from)
     : doc.lineAt(Math.min(node.to, doc.length));
 
-  // line backgrounds — always applied, so a code block always reads as one
-  // contiguous container (even while it is being edited).
   for (let n = openLine.number; n <= closeLine.number; n++) {
     const line = doc.line(n);
     const deco =
@@ -90,26 +206,6 @@ function fencedCode(
           ? cbBottom
           : cbBase;
     out.push(deco.range(line.from));
-  }
-
-  // reveal the raw fences while the cursor is anywhere inside the block
-  if (touches(sel, node.from, node.to)) return;
-
-  const info = node.getChildren("CodeInfo")[0];
-  const lang = info ? doc.sliceString(info.from, info.to).trim() : "";
-
-  // opening fence line -> a compact header showing the language
-  out.push(
-    Decoration.replace({ widget: new FenceHeaderWidget(lang) }).range(
-      openLine.from,
-      openLine.to,
-    ),
-  );
-
-  // closing fence line -> emptied; the styled line becomes the block's
-  // bottom padding
-  if (closeMark && closeLine.number !== openLine.number) {
-    out.push(hide.range(closeLine.from, closeLine.to));
   }
 }
 
@@ -129,7 +225,6 @@ function build(view: EditorView): DecorationSet {
           name === "Emphasis" ||
           name === "InlineCode"
         ) {
-          // revealed while touched — descend so nested spans get their turn
           if (touches(sel, ref.from, ref.to)) return;
           const markName = name === "InlineCode" ? "CodeMark" : "EmphasisMark";
           for (const m of ref.node.getChildren(markName)) {
@@ -138,14 +233,17 @@ function build(view: EditorView): DecorationSet {
           return;
         }
         if (name === "FencedCode") {
-          fencedCode(view, ref.node, sel, out);
+          // collapsed blocks are handled by collapsedCodeField; only the
+          // expanded (cursor-inside) state needs the styled container here
+          if (touches(sel, ref.from, ref.to)) {
+            expandedFence(view, ref.node, out);
+          }
+          return false;
         }
       },
     });
   }
 
-  // sort = true: nodes are visited document-first, but nested spans and the
-  // per-line code-block decorations are emitted out of positional order.
   return Decoration.set(out, true);
 }
 
@@ -156,7 +254,6 @@ export const markdownDecorations = ViewPlugin.fromClass(
       this.decorations = build(view);
     }
     update(u: ViewUpdate) {
-      // selectionSet matters: concealment depends on where the cursor is
       if (u.docChanged || u.viewportChanged || u.selectionSet) {
         this.decorations = build(u.view);
       }
