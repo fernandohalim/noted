@@ -51,12 +51,20 @@ export default function TreeNodeComponent({
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isPending, withPending } = usePendingItems();
-  const { addNode, renameNode, removeNode, moveNode, openFile, closeFile } =
-    useTree();
+  const {
+    addNode,
+    renameNode,
+    removeNode,
+    moveNode,
+    openFile,
+    closeFile,
+    setFocused,
+  } = useTree();
   const [createBusy, setCreateBusy] = useState(false);
   const busy = isPending(node.id);
 
   const handleClick = () => {
+    setFocused(node.id);
     if (node.type === "folder") onToggle(node.id);
     else openFile(node.id);
   };
@@ -183,6 +191,7 @@ export default function TreeNodeComponent({
         alert(res.error);
       } else if (res.data) {
         addNode(res.data);
+        setFocused(res.data.id);
         if (!expandedSet.has(node.id)) onToggle(node.id);
         if (creating === "file") {
           openFile(res.data.id);

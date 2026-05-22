@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -22,7 +23,8 @@ type SyncStatus = "loading" | "ready" | "error";
 
 interface SyncCtx {
   initialItems: ItemMeta[];
-  triggerSync: () => void;
+  triggerSync: () => Promise<void>;
+  syncing: boolean;
 }
 
 const Ctx = createContext<SyncCtx | null>(null);
@@ -46,6 +48,7 @@ export default function SyncProvider({
   );
   const [initialItems, setInitialItems] = useState<ItemMeta[]>([]);
   const bootstrapped = useRef(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (bootstrapped.current) return;
@@ -68,7 +71,9 @@ export default function SyncProvider({
         if (!fresh.initialSyncDone || fresh.userId !== userId) {
           await pullDelta(userId); // first run: block on full sync
         } else {
-          void flushSync(userId); // warm cache: sync in background
+          void flushSync(userId).then((changed) => {
+            if (changed) window.dispatchEvent(new Event("noted:items-updated"));
+          });
         }
         setInitialItems(await localGetAllItems());
         setStatus("ready");
@@ -98,6 +103,17 @@ export default function SyncProvider({
     };
   }, [status, userId]);
 
+  const triggerSync = useCallback(async () => {
+    if (!userId) return;
+    setSyncing(true);
+    try {
+      const changed = await flushSync(userId);
+      if (changed) window.dispatchEvent(new Event("noted:items-updated"));
+    } finally {
+      setSyncing(false);
+    }
+  }, [userId]);
+
   if (status === "loading") return <AppSkeleton />;
   if (status === "error") {
     return (
@@ -114,9 +130,7 @@ export default function SyncProvider({
   }
 
   return (
-    <Ctx.Provider
-      value={{ initialItems, triggerSync: () => void flushSync(userId) }}
-    >
+    <Ctx.Provider value={{ initialItems, triggerSync, syncing }}>
       {children}
     </Ctx.Provider>
   );

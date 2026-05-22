@@ -1,5 +1,16 @@
 export const releases = [
   {
+    version: "1.4.1",
+    date: "may 2026",
+    title: "smarter file creation & manual sync",
+    badge: "patch",
+    features: [
+      "new files and folders are now created inside the focused folder (or the focused file's parent) — vscode-style — instead of always landing at the root",
+      "added a \"sync now\" button in the title bar to pull changes from other devices on demand",
+      "fixed background sync writing updates to local storage without refreshing the open view — edits made on another device now appear without signing out and back in",
+    ],
+  },
+  {
     version: "1.4",
     date: "may 2026",
     title: "live formatting & the editor toolbar",

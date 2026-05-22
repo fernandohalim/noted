@@ -16,6 +16,13 @@ import { localGetAllItems } from "@/lib/local-store";
 interface TreeContextValue {
   tree: TreeNode[];
   selectedId: string | undefined;
+  focusedId: string | null;
+  setFocused: (id: string | null) => void;
+  creationParentId: string | null;
+  creationParentName: string;
+  expanded: Set<string>;
+  toggleExpanded: (id: string) => void;
+  expandFolder: (id: string) => void;
   openFile: (id: string) => void;
   closeFile: () => void;
   addNode: (item: ItemMeta) => void;
@@ -47,6 +54,41 @@ export function TreeProvider({
   const selectedId = searchParams.get("file") ?? undefined;
 
   const tree = buildTree(items);
+
+  // VSCode-style creation target: last clicked file/folder.
+  // a focused folder is the target; a focused file targets its parent folder.
+  const [focusedId, setFocused] = useState<string | null>(
+    () => searchParams.get("file") ?? null,
+  );
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const focused = focusedId ? items.find((i) => i.id === focusedId) : undefined;
+  const creationParentId = focused
+    ? focused.type === "folder"
+      ? focused.id
+      : focused.parent_id
+    : null;
+  const creationParentName = creationParentId
+    ? (items.find((i) => i.id === creationParentId)?.name ?? "root")
+    : "root";
+
+  const toggleExpanded = useCallback((id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const expandFolder = useCallback((id: string) => {
+    setExpanded((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
 
   // refresh the tree after a background sync brought new data
   useEffect(() => {
@@ -116,6 +158,13 @@ export function TreeProvider({
       value={{
         tree,
         selectedId,
+        focusedId,
+        setFocused,
+        creationParentId,
+        creationParentName,
+        expanded,
+        toggleExpanded,
+        expandFolder,
         openFile,
         closeFile,
         addNode,

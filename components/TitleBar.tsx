@@ -1,12 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, HelpCircle, Loader2, WifiOff, KeyIcon } from "lucide-react";
+import {
+  Menu,
+  HelpCircle,
+  Loader2,
+  WifiOff,
+  KeyIcon,
+  RefreshCw,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useOnline } from "@/lib/use-online";
 import AboutModal from "./AboutModal";
 import { localClearAll } from "@/lib/local-store";
+import { useSync } from "./SyncProvider";
 
 export default function TitleBar({
   email,
@@ -17,6 +25,7 @@ export default function TitleBar({
 }) {
   const router = useRouter();
   const isOnline = useOnline();
+  const { triggerSync, syncing } = useSync();
   const [signingOut, setSigningOut] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
 
@@ -53,6 +62,15 @@ export default function TitleBar({
           )}
         </div>
         <div className="flex items-center gap-3 text-text-muted">
+          <button
+            onClick={() => triggerSync()}
+            disabled={syncing || !isOnline}
+            className="hover:text-text flex items-center gap-1 disabled:opacity-50"
+            title="sync now"
+            aria-label="sync now"
+          >
+            <RefreshCw size={12} className={syncing ? "animate-spin" : ""} />
+          </button>
           <button
             onClick={() => setIsAboutOpen(true)}
             className="hover:text-text flex items-center gap-1"

@@ -9,7 +9,14 @@ import { useTree } from "./TreeProvider";
 
 export default function SidebarHeader() {
   const { run } = usePending();
-  const { addNode, openFile } = useTree();
+  const {
+    addNode,
+    openFile,
+    creationParentId,
+    creationParentName,
+    expandFolder,
+    setFocused,
+  } = useTree();
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [name, setName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,9 +33,11 @@ export default function SidebarHeader() {
     inFlight.current = true;
     setBusy(true);
     try {
-      const res = await run(() => createItem(null, name, creating));
+      const res = await run(() => createItem(creationParentId, name, creating));
       if (res.data) {
         addNode(res.data);
+        if (creationParentId) expandFolder(creationParentId);
+        setFocused(res.data.id);
         if (creating === "file") {
           openFile(res.data.id);
         }
@@ -106,26 +115,31 @@ export default function SidebarHeader() {
         </div>
       </div>
       {creating && (
-        <div className="px-3 pb-2 flex items-center gap-1">
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={submit}
-            disabled={busy}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-              if (e.key === "Escape") {
-                setCreating(null);
-                setName("");
-              }
-            }}
-            placeholder={creating === "file" ? "filename.txt" : "folder name"}
-            className="flex-1 px-2 py-1 bg-bg-elevated border border-accent outline-none text-xs disabled:opacity-50"
-          />
-          {busy && (
-            <Loader2 size={12} className="animate-spin text-text-muted" />
-          )}
+        <div className="px-3 pb-2">
+          <div className="flex items-center gap-1">
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={submit}
+              disabled={busy}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") submit();
+                if (e.key === "Escape") {
+                  setCreating(null);
+                  setName("");
+                }
+              }}
+              placeholder={creating === "file" ? "filename.txt" : "folder name"}
+              className="flex-1 px-2 py-1 bg-bg-elevated border border-accent outline-none text-xs disabled:opacity-50"
+            />
+            {busy && (
+              <Loader2 size={12} className="animate-spin text-text-muted" />
+            )}
+          </div>
+          <div className="mt-1 text-[10px] text-text-muted truncate">
+            in {creationParentName}
+          </div>
         </div>
       )}
     </div>

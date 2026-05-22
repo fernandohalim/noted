@@ -16,17 +16,7 @@ export default function FileTree({
   selectedId?: string;
 }) {
   const { run } = usePending();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [isRootDragOver, setIsRootDragOver] = useState(false);
-
-  const toggle = (id: string) => {
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   const handleRootDragOver = (e: React.DragEvent) => {
     if (!e.dataTransfer.types.includes("application/x-noted-id")) return;
@@ -36,7 +26,7 @@ export default function FileTree({
   };
 
   const { withPending } = usePendingItems();
-  const { moveNode } = useTree();
+  const { moveNode, expanded, toggleExpanded } = useTree();
 
   const handleRootDrop = async (e: React.DragEvent) => {
     e.preventDefault();
@@ -65,7 +55,7 @@ export default function FileTree({
             selectedId={selectedId}
             depth={0}
             expandedSet={expanded}
-            onToggle={toggle}
+            onToggle={toggleExpanded}
           />
         ))}
       </ul>

@@ -78,7 +78,8 @@ export default function ShortcutPalette() {
   const { run } = usePending();
   const prompt = usePrompt();
   const [open, setOpen] = useState(false);
-  const { openFile } = useTree();
+  const { openFile, addNode, creationParentId, expandFolder, setFocused } =
+    useTree();
 
   useEffect(() => {
     const handler = async (e: KeyboardEvent) => {
@@ -102,8 +103,15 @@ export default function ShortcutPalette() {
           placeholder: "filename.txt",
         });
         if (name) {
-          const res = await run(() => createItem(null, name, "file"));
-          if (res.data) openFile(res.data.id);
+          const res = await run(() =>
+            createItem(creationParentId, name, "file"),
+          );
+          if (res.data) {
+            addNode(res.data);
+            if (creationParentId) expandFolder(creationParentId);
+            setFocused(res.data.id);
+            openFile(res.data.id);
+          }
         }
       } else if (e.key === "N") {
         e.preventDefault();
@@ -111,7 +119,16 @@ export default function ShortcutPalette() {
           title: "new folder",
           placeholder: "folder name",
         });
-        if (name) await run(() => createItem(null, name, "folder"));
+        if (name) {
+          const res = await run(() =>
+            createItem(creationParentId, name, "folder"),
+          );
+          if (res.data) {
+            addNode(res.data);
+            if (creationParentId) expandFolder(creationParentId);
+            setFocused(res.data.id);
+          }
+        }
       }
     };
     document.addEventListener("keydown", handler);
