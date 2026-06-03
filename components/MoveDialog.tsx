@@ -7,6 +7,7 @@ import { buildTree } from "@/lib/tree";
 import type { TreeNode } from "@/types";
 import { usePending } from "./PendingProvider";
 import { useTree } from "./TreeProvider";
+import { createPortal } from "react-dom";
 
 export default function MoveDialog({
   itemId,
@@ -96,7 +97,7 @@ export default function MoveDialog({
     );
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
       onClick={onClose}
@@ -137,6 +138,7 @@ export default function MoveDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

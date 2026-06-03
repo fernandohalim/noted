@@ -30,6 +30,16 @@ function touches(sel: Sel, from: number, to: number): boolean {
   return false;
 }
 
+/** like touches(), but a bare cursor sitting exactly on the start boundary
+    does NOT count — so clicking the line above can't yank the block open */
+function touchesInterior(sel: Sel, from: number, to: number): boolean {
+  for (const r of sel) {
+    if (r.from === r.to && r.from === from) continue;
+    if (r.from <= to && r.to >= from) return true;
+  }
+  return false;
+}
+
 /** collapsed representation of a fenced code block — a compact one-line card */
 class CollapsedCodeWidget extends WidgetType {
   constructor(
@@ -137,7 +147,7 @@ function buildCollapsed(state: EditorState): DecorationSet {
         : doc.lineAt(Math.min(node.to, doc.length));
 
       // cursor inside (or flush against) the block -> leave it expanded
-      if (touches(sel, node.from, node.to)) return false;
+      if (touchesInterior(sel, node.from, node.to)) return false;
       // needs a real closing fence — unterminated blocks stay expanded
       if (!closeMark || closeLine.number <= openLine.number) return false;
 
@@ -235,7 +245,7 @@ function build(view: EditorView): DecorationSet {
         if (name === "FencedCode") {
           // collapsed blocks are handled by collapsedCodeField; only the
           // expanded (cursor-inside) state needs the styled container here
-          if (touches(sel, ref.from, ref.to)) {
+          if (touchesInterior(sel, ref.from, ref.to)) {
             expandedFence(view, ref.node, out);
           }
           return false;

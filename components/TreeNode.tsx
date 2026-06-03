@@ -20,6 +20,7 @@ import { downloadTextFile, downloadFolderAsZip } from "@/lib/export";
 import { usePendingItems } from "./PendingItemsProvider";
 import { Loader2 } from "lucide-react";
 import { useTree } from "./TreeProvider";
+import ExportModal from "./ExportModal";
 
 interface Props {
   node: TreeNode;
@@ -44,6 +45,10 @@ export default function TreeNodeComponent({
   const [name, setName] = useState(node.name);
   const [moving, setMoving] = useState(false);
   const [showProps, setShowProps] = useState(false);
+  const [exporting, setExporting] = useState<{
+    name: string;
+    content: string;
+  } | null>(null);
   const [creating, setCreating] = useState<"file" | "folder" | null>(null);
   const [newName, setNewName] = useState("");
   const confirm = useConfirm();
@@ -164,6 +169,13 @@ export default function TreeNodeComponent({
     }
   };
 
+  const handleRichExport = async () => {
+    const res = await run(() => refreshFileContent(node.id));
+    if ("content" in res && res.content !== undefined) {
+      setExporting({ name: node.name, content: res.content });
+    }
+  };
+
   const handleImportFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -238,6 +250,9 @@ export default function TreeNodeComponent({
       },
     },
     { label: "move to...", onClick: () => setMoving(true) },
+    ...(node.type === "file"
+      ? [{ label: "export to pdf/img", onClick: handleRichExport }]
+      : []),
     {
       label: node.type === "folder" ? "export as zip" : "export as .txt",
       onClick: handleExport,
@@ -383,6 +398,14 @@ export default function TreeNodeComponent({
 
       {showProps && (
         <PropertiesModal itemId={node.id} onClose={() => setShowProps(false)} />
+      )}
+
+      {exporting && (
+        <ExportModal
+          name={exporting.name}
+          content={exporting.content}
+          onClose={() => setExporting(null)}
+        />
       )}
 
       {node.type === "folder" && (

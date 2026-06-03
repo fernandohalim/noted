@@ -6,6 +6,7 @@ import { getItem, getFolderTree } from "@/lib/data";
 import { createClient } from "@/lib/supabase/client";
 import { useTree } from "./TreeProvider";
 import type { Item, TreeNode } from "@/types";
+import { createPortal } from "react-dom";
 
 function findPath(
   nodes: TreeNode[],
@@ -110,7 +111,7 @@ export default function PropertiesModal({
   const lineCount = content.length ? content.split("\n").length : 0;
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 font-mono">
       <div className="fixed inset-0" onClick={onClose} />
       <div className="bg-bg border border-border w-full max-w-md shadow-2xl flex flex-col relative z-10 overflow-hidden">
@@ -175,6 +176,7 @@ export default function PropertiesModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

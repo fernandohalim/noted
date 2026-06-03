@@ -1,5 +1,16 @@
 export const releases = [
   {
+    version: "1.5",
+    date: "june 2026",
+    title: "rich export & code-block click fix",
+    badge: "feature",
+    features: [
+      "export a note to pdf or image with a dedicated dialog — pick font, text size, page size and orientation, background, margins, and render quality",
+      "markdown is rendered to a real formatted document: headings, lists, tables, blockquotes, and syntax-highlighted code blocks",
+      "fixed the text on the line directly above a collapsed code block being hard to click",
+    ],
+  },
+  {
     version: "1.4.2",
     date: "may 2026",
     title: "file properties & collapsible code blocks",
