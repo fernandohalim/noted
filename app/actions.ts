@@ -173,7 +173,7 @@ export async function getItemsSince(updatedAt: string | null) {
   let query = supabase
     .from("items")
     .select(
-      "id, user_id, parent_id, name, type, content, created_at, updated_at, deleted_at",
+      "id, user_id, parent_id, name, type, content, created_at, updated_at, deleted_at, is_public",
     )
     .eq("user_id", user.id);
 
@@ -184,4 +184,20 @@ export async function getItemsSince(updatedAt: string | null) {
   const { data, error } = await query.order("updated_at", { ascending: true });
   if (error) return { error: error.message, data: [] };
   return { data: data ?? [] };
+}
+
+export async function setItemPublic(id: string, isPublic: boolean) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "unauthorized" };
+
+  const { error } = await supabase
+    .from("items")
+    .update({ is_public: isPublic })
+    .eq("id", id)
+    .eq("user_id", user.id);
+  if (error) return { error: error.message };
+  return { ok: true };
 }

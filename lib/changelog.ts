@@ -1,4 +1,16 @@
-export const releases = [
+export const releases = [  
+  {
+    version: "2.0",
+    date: "june 2026",
+    title: "view-only note sharing",
+    badge: "major",
+    features: [
+      "share any note as a read-only link — from the editor header (share icon, next to refresh) or by right-clicking a file",
+      "anyone with the link can read the note without an account; editing and saving are disabled in the shared view",
+      "a new \"viewed\" section in the sidebar tracks notes you've opened that you don't own, so you can jump back to them — stored per-device",
+      "right-click a shared file to copy the link again or stop sharing",
+    ],
+  },
   {
     version: "1.5",
     date: "june 2026",

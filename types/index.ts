@@ -9,6 +9,7 @@ export interface ItemMeta {
   created_at: string;
   updated_at: string;
   deleted_at?: string | null;
+  is_public?: boolean;
 }
 
 export interface Item extends ItemMeta {
@@ -59,4 +60,10 @@ export interface BaseSnapshot {
   id: string; // item id
   content: string; // last server-confirmed content
   updatedAt: string; // server updated_at this content corresponds to
+}
+
+export interface ViewedNote {
+  id: string;
+  name: string;
+  viewedAt: number;
 }

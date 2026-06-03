@@ -5,7 +5,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { EditorView, keymap } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
-import { RotateCw, WifiOff, GitMerge } from "lucide-react";
+import { RotateCw, WifiOff, GitMerge, Share2, Check } from "lucide-react";
 import type { Item, TreeNode } from "@/types";
 import { usePending } from "./PendingProvider";
 import { useConfirm } from "./ConfirmDialog";
@@ -24,6 +24,7 @@ import {
   hasPendingMutation,
   getItemConflict,
   persistLocalContent,
+  setItemPublic,
 } from "@/lib/data";
 import {
   localGetItem,
@@ -125,6 +126,9 @@ export default function Editor({
     theirsUpdatedAt: string;
   } | null>(null);
   const [mergedNotice, setMergedNotice] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "copied" | "error">(
+    "idle",
+  );
 
   const [isCoarsePointer] = useState(
     () =>
@@ -294,6 +298,23 @@ export default function Editor({
       replaceEditorContent(refresh.content, refresh.updatedAt);
     }
   }, [run, file.id, confirm, replaceEditorContent]);
+
+  const handleShare = useCallback(async () => {
+    const res = await run(() => setItemPublic(file.id, true));
+    if ("error" in res && res.error) {
+      setShareState("error");
+      setTimeout(() => setShareState("idle"), 2500);
+      return;
+    }
+    try {
+      await navigator.clipboard?.writeText(
+        `${location.origin}/share/${file.id}`,
+      );
+    } catch {}
+    window.dispatchEvent(new Event("noted:items-updated"));
+    setShareState("copied");
+    setTimeout(() => setShareState("idle"), 2000);
+  }, [file.id, run]);
 
   const handleMergeResolve = useCallback(
     async (merged: string) => {
@@ -510,6 +531,21 @@ export default function Editor({
               <span className="hidden sm:inline">auto-merged</span>
             </span>
           )}
+          <button
+            onClick={handleShare}
+            title="copy view-only share link"
+            aria-label="share note"
+            className="text-text-muted hover:text-text"
+          >
+            {shareState === "copied" ? (
+              <Check size={12} className="text-accent" />
+            ) : (
+              <Share2
+                size={12}
+                className={shareState === "error" ? "text-red-400" : ""}
+              />
+            )}
+          </button>
           <button
             onClick={handleRefresh}
             title="reload from server"

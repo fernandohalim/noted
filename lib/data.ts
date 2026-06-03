@@ -7,6 +7,7 @@ import {
   deleteItem as srvDelete,
   updateFileContent as srvUpdateContent,
   refreshFileContent as srvRefresh,
+  setItemPublic as srvSetPublic,
 } from "@/app/actions";
 import {
   getConflicts,
@@ -126,6 +127,7 @@ export async function createItem(
     created_at: now,
     updated_at: now,
     deleted_at: null,
+    is_public: false,
   };
   await localPutItem(optimistic);
 
@@ -214,6 +216,18 @@ export async function moveItem(
   }
   const res = await srvMove(id, newParentId);
   if ("error" in res && res.error) await queue();
+  return { ok: true };
+}
+
+export async function setItemPublic(
+  id: string,
+  isPublic: boolean,
+): Promise<{ ok?: true; error?: string }> {
+  if (!online()) return { error: "you're offline — reconnect to share" };
+  const res = await srvSetPublic(id, isPublic);
+  if ("error" in res && res.error) return { error: res.error };
+  const existing = await localGetItem(id);
+  if (existing) await localPutItem({ ...existing, is_public: isPublic });
   return { ok: true };
 }
 

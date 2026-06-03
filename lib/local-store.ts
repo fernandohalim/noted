@@ -6,6 +6,7 @@ import type {
   ItemMeta,
   PendingMutation,
   SyncMeta,
+  ViewedNote,
 } from "@/types";
 
 // in-memory cache of full items (incl. content), keyed by id.
@@ -162,4 +163,22 @@ export async function clearConflict(itemId: string): Promise<void> {
   const map = await getConflicts();
   delete map[itemId];
   await db.put("meta", map, META_KEY_CONFLICTS);
+}
+
+// ---------- viewed (not-owned) history ----------
+
+export async function recordViewed(v: ViewedNote): Promise<void> {
+  const db = await getDB();
+  await db.put("viewed", v);
+}
+
+export async function listViewed(): Promise<ViewedNote[]> {
+  const db = await getDB();
+  const all = await db.getAll("viewed");
+  return all.sort((a, b) => b.viewedAt - a.viewedAt);
+}
+
+export async function removeViewed(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete("viewed", id);
 }

@@ -10,6 +10,7 @@ import {
   moveItem,
   getFolderTree,
   refreshFileContent,
+  setItemPublic,
 } from "@/lib/data";
 import ContextMenu, { type MenuItem } from "./ContextMenu";
 import MoveDialog from "./MoveDialog";
@@ -169,6 +170,33 @@ export default function TreeNodeComponent({
     }
   };
 
+  const handleShareLink = async () => {
+    const res = await withPending(node.id, () =>
+      run(() => setItemPublic(node.id, true)),
+    );
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+    try {
+      await navigator.clipboard?.writeText(
+        `${location.origin}/share/${node.id}`,
+      );
+    } catch {}
+    window.dispatchEvent(new Event("noted:items-updated"));
+  };
+
+  const handleUnshare = async () => {
+    const res = await withPending(node.id, () =>
+      run(() => setItemPublic(node.id, false)),
+    );
+    if (res.error) {
+      alert(res.error);
+      return;
+    }
+    window.dispatchEvent(new Event("noted:items-updated"));
+  };
+
   const handleRichExport = async () => {
     const res = await run(() => refreshFileContent(node.id));
     if ("content" in res && res.content !== undefined) {
@@ -252,6 +280,17 @@ export default function TreeNodeComponent({
     { label: "move to...", onClick: () => setMoving(true) },
     ...(node.type === "file"
       ? [{ label: "export to pdf/img", onClick: handleRichExport }]
+      : []),
+    ...(node.type === "file"
+      ? [
+          {
+            label: node.is_public ? "copy share link" : "share (copy link)",
+            onClick: handleShareLink,
+          },
+          ...(node.is_public
+            ? [{ label: "stop sharing", onClick: handleUnshare }]
+            : []),
+        ]
       : []),
     {
       label: node.type === "folder" ? "export as zip" : "export as .txt",

@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { Item, PendingMutation, BaseSnapshot } from "@/types";
+import type { Item, PendingMutation, BaseSnapshot, ViewedNote } from "@/types";
 
 interface NotedDB extends DBSchema {
   items: {
@@ -18,10 +18,14 @@ interface NotedDB extends DBSchema {
     key: string;
     value: BaseSnapshot;
   };
+  viewed: {
+    key: string;
+    value: ViewedNote;
+  };
 }
 
 const DB_NAME = "noted";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<NotedDB>> | null = null;
 
@@ -43,6 +47,9 @@ export function getDB(): Promise<IDBPDatabase<NotedDB>> {
         }
         if (!db.objectStoreNames.contains("bases")) {
           db.createObjectStore("bases", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("viewed")) {
+          db.createObjectStore("viewed", { keyPath: "id" });
         }
       },
       blocked() {

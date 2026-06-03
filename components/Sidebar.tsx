@@ -1,6 +1,7 @@
 import type { TreeNode } from "@/types";
 import SidebarHeader from "./SidebarHeader";
 import FileTree from "./FileTree";
+import ViewedSection from "./ViewedSection";
 
 export default function Sidebar({
   tree,
@@ -21,7 +22,7 @@ export default function Sidebar({
       `}
     >
       <SidebarHeader />
-      <div className="flex-1 overflow-y-auto py-1">
+      <div className="flex-1 min-h-0 overflow-y-auto py-1">
         {tree.length === 0 ? (
           <div className="px-3 py-2 text-xs text-text-muted">
             empty. create your first file.
@@ -30,6 +31,7 @@ export default function Sidebar({
           <FileTree nodes={tree} selectedId={selectedId} />
         )}
       </div>
+      <ViewedSection />
     </aside>
   );
 }
