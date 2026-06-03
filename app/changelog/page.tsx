@@ -9,6 +9,8 @@ import { releases } from "@/lib/changelog";
 // borders stay uniform so it reads as one system
 function badgeClasses(badge: string): string {
   switch (badge) {
+    case "major":
+      return "bg-accent text-bg border border-accent";
     case "launch":
       return "bg-accent text-bg border border-accent";
     case "feature":
