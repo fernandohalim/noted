@@ -8,10 +8,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { Eye } from "lucide-react";
 import { customTheme } from "@/lib/editor-theme";
-import {
-  markdownDecorations,
-  collapsedCodeField,
-} from "@/lib/markdown-decorations";
+import { markdownDecorations } from "@/lib/markdown-decorations";
 import { recordViewed, listViewed } from "@/lib/local-store";
 import type { ViewedNote } from "@/types";
 
@@ -65,7 +62,6 @@ export default function SharedView({
             markdown({ codeLanguages: languages }),
             EditorView.lineWrapping,
             markdownDecorations,
-            collapsedCodeField,
           ]}
           basicSetup={{
             lineNumbers: false,

@@ -1,5 +1,16 @@
 export const releases = [  
   {
+    version: "2.0.1",
+    date: "june 2026",
+    title: "code blocks, rendered",
+    badge: "patch",
+    features: [
+      "code blocks no longer collapse as the cursor moves — they stay open and styled, like a rendered markdown block",
+      "fence markers are hidden behind a header bar showing the language and a copy button; click a fence line to edit it raw",
+      "code stays syntax-highlighted and clearly separated from the rest of the note",
+    ],
+  },
+  {
     version: "2.0",
     date: "june 2026",
     title: "view-only note sharing",

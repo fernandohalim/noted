@@ -13,10 +13,7 @@ import { customTheme } from "@/lib/editor-theme";
 import { useOnline } from "@/lib/use-online";
 import { Compartment, EditorState, Prec } from "@codemirror/state";
 import { editorCommands } from "@/lib/editor-commands";
-import {
-  markdownDecorations,
-  collapsedCodeField,
-} from "@/lib/markdown-decorations";
+import { markdownDecorations } from "@/lib/markdown-decorations";
 import EditorToolbar from "./EditorToolbar";
 import {
   updateFileContent,
@@ -584,7 +581,6 @@ export default function Editor({
             editableCompartment.of(EditorView.editable.of(true)),
             foldGutterTheme,
             markdownDecorations,
-            collapsedCodeField,
           ]}
           basicSetup={{
             lineNumbers: false,
